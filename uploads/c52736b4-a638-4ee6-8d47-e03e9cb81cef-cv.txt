@@ -1,0 +1,328 @@
+Professional Summary
+Cybersecurity professional with 5+ years of progressive experience
+leading security operations, incident response, and cybersecurity
+improvement programs in global enterprise environments. Proven
+track record in managing cross-functional teams, external SOC
+providers, and complex security initiatives from planning through
+operational delivery.
+Core expertise:
+Security Operations & Incident Response
+(SOC/SIEM/SOAR/EDR/DLP)
+Detection engineering, threat hunting, and MITRE ATT&CK-based
+use cases
+Cybersecurity project and program delivery with strong
+stakeholder engagement
+Vendor management, SLA governance, and performance
+optimization
+Risk management, vulnerability remediation coordination, and
+compliance frameworks (ISO 27001, GDPR, NIS2 awareness)
+Seeking Security Operations / SOC / Incident Response or
+Cybersecurity Program Coordinator roles in the Netherlands.
+Ready for immediate relocation upon o er.
+Work Authorization
+Current Status: Russian citizen, based in Russia
+Visa Requirement: Highly Skilled Migrant visa sponsorship required
+Relocation Readiness: Fully prepared to relocate to the Netherlands
+within 4–6 weeks of o er acceptance
+Quali cations: Bachelor's degree in Aerospace Instrumentation
+(2021) + 5+ years specialized cybersecurity experience in enterprise
+environments
+Professional Experience
+Cybersecurity Monitoring and Response Lead
+Baltika Brewers Inc. | August 2025 – Present
+Lead coordination and delivery of cybersecurity monitoring and
+incident response improvement initiatives, working with internal
+teams and external SOC providers to strengthen detection capabilities
+and operational resilience across the enterprise.
+Key Responsibilities:
+Plan, coordinate, and track cybersecurity initiatives, aligning
+security operations with broader IT and security priorities to
+ensure e ective detection and response processes
+Manage external SOC service providers and coordinate IT teams,
+validating monitoring coverage, detection logic, reporting
+quality, and compliance with SLA and operational agreements
+Drive continuous improvement of threat detection capabilities
+through development of threat hunting initiatives and detection
+engineering use cases
+Manage cybersecurity project milestones, delivery timelines, and
+cross-team dependencies by facilitating project governance
+meetings to track progress, risks, and delivery status
+Key Projects:
+Security Monitoring Modernization Program – Led initiative
+to improve detection coverage and operational monitoring
+across internal teams and external SOC providers, resulting in
+enhanced visibility across critical business systems
+Incident Response Performance Improvement – Managed
+program focused on improving incident response e ciency
+through performance metrics, standardized work ows, and
+SOAR integration
+Achievements:
+Improved detection capabilities by 35% through validation
+and optimization of 120+ monitoring rules and security
+dashboards
+Reduced Mean Time to Respond (MTTR) by 28% by
+implementing SLA and MTTR tracking within the SOAR platform
+and standardizing incident response work ows
+Strengthened incident response readiness by developing and
+deploying 15+ standardized playbooks covering common attack
+scenarios (phishing, malware, data ex ltration, privilege
+escalation)
+Identi ed and closed 12 critical monitoring gaps through
+incident metrics analysis and coordinated remediation
+initiatives with IT and security teams
+Security Specialist
+NIIS (National Insurance Information System) | August 2024 
+August 2025
+Delivered operational cybersecurity initiatives focused on improving
+threat detection, incident response coordination, and security
+monitoring across enterprise systems in a regulated nancial
+services environment.
+Key Responsibilities:
+Coordinated investigation and response to security incidents
+across SOC analysts, infrastructure teams, and IT departments
+Conducted proactive threat hunting activities based on
+behavioral anomalies, threat intelligence feeds, and MITRE
+ATT&CK techniques
+Managed cross-team remediation tasks including vulnerability
+mitigation, network con guration improvements, and security
+tool optimization
+Managed collaboration between infrastructure teams and
+security analysts to ensure proper telemetry collection and log
+forwarding
+Coordinated security improvement initiatives and tracking of
+remediation actions across technical teams
+Key Projects:
+SIEM Detection Enhancement Project – Led project to improve
+threat detection accuracy and monitoring coverage across
+enterprise systems by tuning correlation rules and expanding
+log source integration
+Security Monitoring Integration for Linux RHEL, NextCloud
+& VMware – Managed project to improve security visibility
+through enhanced log collection and monitoring integration for
+previously unmonitored critical infrastructure
+Achievements:
+Improved SIEM detection accuracy by 40% through
+development and tuning of 80+ correlation rules and log
+normalization processes, reducing false positive rate from 45%
+to 18%
+Enhanced monitoring coverage by integrating 25+ additional
+log sources including Linux RHEL servers, NextCloud
+collaboration platform, and VMware virtualization
+infrastructure into the SIEM platform
+Supported 30+ forensic investigations including root cause
+analysis and coordinated follow-up remediation activities across
+relevant teams to strengthen organizational security controls
+Developed 8 custom threat hunting queries based on MITRE
+ATT&CK framework, uncovering 3 previously undetected
+persistent threats
+Global Service Desk Technical Service Delivery
+Manager / Tower Lead
+JTI (Japan Tobacco International) | September 2023 – August 2024
+Led global service delivery coordination for outsourced service desk
+operations across multiple regions (Asia, Europe, Americas), ensuring
+alignment with operational standards, vendor agreements, and
+service quality targets.
+Key Responsibilities:
+Coordinated service delivery initiatives across global technical
+support hubs in Asia, Europe, and the Americas
+Managed outsourced service providers, ensuring adherence to
+contractual SLAs, operational standards, and performance
+targets
+Collaborated with internal IT teams and stakeholders to align
+service delivery with ongoing IT projects and operational
+priorities
+Oversaw project-related service readiness activities, including
+knowledge transfer, documentation development, and
+operational transition planning
+Tracked project dependencies, risks, and service delivery
+impacts to ensure alignment between project teams and global
+support operations
+Key Projects:
+Global Service Hub Transition – Managed initiative to establish
+new service desk hubs and transition support operations across
+regions, a ecting 12,000+ end users globally
+Global Service Delivery Process Standardization – Led project
+to improve consistency and quality across global service desk
+operations through standardized work ows and knowledge
+management
+High-Priority Incident Response Procedure Development 
+Designed standardized procedure for handling high-priority
+incidents across IT teams, improving coordination and reducing
+escalation time
+Achievements:
+Successfully coordinated transition and establishment of
+new service hubs in Pune and Japan with zero critical
+incidents during cutover period
+Improved service delivery consistency by 42% across global
+support teams through standardized processes and
+performance monitoring
+Reduced response time for high-priority incidents by 35%
+through clear, standardized escalation process and improved
+cross-team collaboration
+Strengthened collaboration between global IT teams and
+service providers, enhancing service quality and operational
+stability as measured by improved user satisfaction scores (+18
+NPS points)
+Global Service Desk Project Delivery Manager
+JTI (Japan Tobacco International) | September 2022 – September
+2023
+Coordinated service desk and IT security-related initiatives,
+supporting delivery of operational improvements, incident
+management processes, and cross-team collaboration.
+Key Responsibilities:
+Led service desk involvement in IT projects, coordinating testing
+activities, stakeholder communication, and issue resolution
+across IT teams
+Developed and implemented IT security procedures and incident
+management processes for the global service desk
+Coordinated cross-team project activities ensuring alignment
+between service desk operations, security teams, and
+infrastructure teams to improve security awareness and
+incident response processes
+Key Projects:
+Tier Model Transition – Coordinated enterprise project to
+redesign Global Service Desk support structure by implementing
+Tiered Support Model across multiple regions
+Service Desk IT Security Process Optimization – Led initiative
+to improve operational e ciency and incident resolution
+processes for IT Security-related cases
+Achievements:
+Successfully implemented Tiered Support Model across
+global service desk hubs a ecting 8,000+ users with minimal
+disruption to daily operations
+Improved operational e ciency for handling IT Security
+incidents by 48% including coordination quality with IT
+Security teams, as measured by reduced resolution time and
+improved hando quality
+Strengthened collaboration between service desk and
+cybersecurity teams during security incidents through
+development of clear escalation procedures and regular joint
+training sessions
+Delivered process improvements for documentation and
+knowledge management, resulting in 30% faster incident
+categorization and routing
+Global Service Desk L2 Manager
+JTI (Japan Tobacco International) | June 2022 – September 2023
+Managed the Global Service Desk Level 2 team responsible for
+complex incident resolution and operational support across multiple
+regions.
+Key Responsibilities:
+Led and coordinated distributed L2 support team across Russia
+and the Philippines (12 team members)
+Established operational processes, work ows, and
+documentation to support e cient incident resolution
+Monitored service performance and ensured adherence to KPIs
+and SLAs
+Key Projects:
+Global L2 Support Model Rollout – Led project to establish new
+Level 2 support model across regions
+L2 Incident Metrics Development – Created and implemented
+new metrics to measure L2 incident management performance
+Achievements:
+Successfully piloted rollout of new global L2 support model
+across multiple regions, improving rst-time resolution rate by
+32%
+Improved operational performance through development of
+new work ows and knowledge base documentation, reducing
+average handle time by 24%
+Strengthened team performance through structured goal
+setting and performance reviews, achieving 95%+ SLA
+compliance
+Global Service Desk Analyst
+JTI (Japan Tobacco International) | February 2021 – September
+2022
+Provided global IT support and incident resolution for enterprise
+systems while supporting security-related requests and
+documentation management.
+Key Responsibilities:
+Investigated and resolved technical issues across a wide range of
+enterprise software and infrastructure systems
+Served as primary contact for security-related inquiries within
+the Global Service Desk
+Maintained and updated knowledge base documentation
+supporting IT and security processes
+Achievements:
+Delivered consistent support for global users across multiple
+regions and time zones
+Improved documentation quality and accessibility through
+structured knowledge base updates
+Supported security-related processes and coordination with
+cybersecurity teams
+Education
+Bachelor of Aerospace Instrumentation
+Saint Petersburg State University of Aerospace Instrumentation |
+Graduated 2021
+Master of Cybersecurity (Ungraduated)
+Saint Petersburg National Research University of Information
+Technologies, Mechanics and Optics
+Certi cations
+Currently pursuing:
+CompTIA Security+ (planned Q2 2026)
+CISSP Associate (planned Q3 2026)
+Technical Skills
+Security Operations & Incident Response
+SIEM (Splunk, QRadar, ArcSight), SOAR platforms, EDR solutions, DLP
+systems, Threat Intelligence platforms, MITRE ATT&CK framework,
+Threat Hunting, Detection Engineering, Incident Response, Forensic
+Analysis, Vulnerability Management
+Security Tools & Technologies
+Active Directory security, Windows security hardening, Linux
+security (RHEL, Ubuntu), VMware security, Cloud security basics
+(Azure, AWS), Network security monitoring, Log analysis and
+correlation, Security dashboards and reporting
+Compliance & Frameworks
+ISO/IEC 27001, GDPR (working knowledge), NIS2 Directive
+(awareness), NIST Cybersecurity Framework, ITIL v4 (Incident,
+Change, Problem Management)
+Project & Program Management
+Cybersecurity project delivery, Program governance, Stakeholder
+management, Vendor management, Risk & issue management, Cross
+functional team coordination, Agile / Scrum methodologies, Waterfall
+project management, Dependency management, SLA governance and
+monitoring
+Platforms & Systems
+ServiceNow (Incident/Change/Problem modules), Microsoft 365
+security, Enterprise IT infrastructure, Ticketing and ITSM platforms
+Key Competencies
+Security Operations Leadership: Proven ability to lead SOC
+operations, manage external security service providers, and
+drive continuous improvement of detection and response
+capabilities
+Incident Response Coordination: Strong track record
+coordinating complex security incidents across distributed
+teams, from initial detection through containment, eradication,
+and recovery
+Detection Engineering: Experience developing and tuning SIEM
+correlation rules, creating custom threat hunting queries, and
+building detection use cases based on MITRE ATT&CK
+Program & Project Delivery: Demonstrated success managing
+cybersecurity improvement programs from planning through
+operational delivery, including stakeholder engagement and
+governance
+Vendor & Stakeholder Management: Skilled at managing
+external SOC providers, validating service quality, ensuring SLA
+compliance, and engaging senior stakeholders on security
+initiatives
+Risk-Based Approach: Ability to translate cybersecurity risks
+into practical remediation actions and coordinate cross-team
+remediation e orts
+Regulatory Awareness: Understanding of European
+cybersecurity regulatory landscape including GDPR, NIS2, and
+ISO 27001 requirements
+Languages
+Russian: Native
+English: Professional working pro ciency (B2/C1) – uent in
+written and verbal communication, experienced in international
+business environments
+Additional Information
+Global Team Experience: 4+ years working with distributed
+global teams across EMEA, APAC, and Americas regions
+Enterprise Environment: Experience in organizations ranging
+from 5,000 to 50,000+ employees
+Industries: Telecommunications, FMCG/Manufacturing,
+Financial Services, IT Services
+Remote Collaboration: Extensive experience with remote work,
+virtual team coordination, and asynchronous collaboration
+Availability: 4-week notice period required for current role
+Relocation Timeline: Ready to relocate within 4–6 weeks upon
+visa approva

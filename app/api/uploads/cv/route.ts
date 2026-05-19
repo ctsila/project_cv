@@ -181,6 +181,8 @@ export async function POST(req: NextRequest) {
       buffer = Buffer.from(text, 'utf-8');
     }
 
+    extractedText = extractedText.replace(/\u0000/g, ' ').replace(/\s+/g, ' ').trim();
+
     if (!buffer) return NextResponse.json({ error: 'CV text or file is required.' }, { status: 400 });
     if (!extractedText.trim()) return NextResponse.json({ error: 'Could not read this file. Upload a text, PDF, DOCX, or DOC CV.' }, { status: 400 });
 
