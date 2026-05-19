@@ -11,7 +11,7 @@ A premium SaaS-style MVP for truthful, market-adapted resume and cover letter ge
 - Vacancy parsing from pasted text and generic public URLs.
 - hh.ru public vacancy ingestion through the hh public API when the URL contains a vacancy id.
 - LinkedIn URL field with fallback to pasted text. LinkedIn frequently blocks automated reads, so production deployment should use official partner/API access or user-provided text/export.
-- Auth.js/NextAuth provider configuration for Google, LinkedIn, Yandex, plus a placeholder hh.ru credentials-style demo provider.
+- Auth.js/NextAuth provider configuration for Google, LinkedIn, Yandex, and hh.ru OAuth.
 - Database-backed profile, vacancy, and history data for authenticated users.
 
 ## Run locally

@@ -17,6 +17,25 @@ export default function Home() {
 	const [form, setForm] = useState({ name: '', country: '', email: '', password: '' });
 	const t = copy[lang];
 	const cta = mode === 'register' ? t.create : mode === 'reset' ? t.sendReset : t.signin;
+	const handleSocialLogin = (provider: 'google' | 'linkedin' | 'yandex' | 'hh') => {
+		void signIn(provider, { callbackUrl: '/dashboard' });
+	};
+	const handleEmailLink = async () => {
+		if (!form.email.trim()) {
+			setError('Email is required.');
+			return;
+		}
+		setBusy(true);
+		setMessage('');
+		setError('');
+		const result = await signIn('email', { email: form.email, callbackUrl: '/dashboard', redirect: false });
+		setBusy(false);
+		if (result?.error) {
+			setError('Could not send a sign-in link.');
+			return;
+		}
+		setMessage('Check your email for a sign-in link.');
+	};
 
 	async function handleRegister() {
 		setBusy(true);
@@ -27,16 +46,30 @@ export default function Home() {
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ ...form, uiLanguage: lang }),
 		});
-		const data = await res.json();
+		const payload = await res.text();
+		let data: any = {};
+		try {
+			data = payload ? JSON.parse(payload) : {};
+		} catch {
+			data = {};
+		}
 		setBusy(false);
 		if (!res.ok) {
-			setError(data.error || 'Registration failed.');
+			setError(data.error || payload || 'Registration failed.');
 			return;
 		}
-		await signIn('credentials', { email: form.email, password: form.password, callbackUrl: '/dashboard' });
+		if (form.password.trim()) {
+			await signIn('credentials', { email: form.email, password: form.password, callbackUrl: '/dashboard' });
+			return;
+		}
+		await handleEmailLink();
 	}
 
 	async function handleLogin() {
+		if (!form.password.trim()) {
+			await handleEmailLink();
+			return;
+		}
 		setBusy(true);
 		setMessage('');
 		setError('');
@@ -99,16 +132,18 @@ export default function Home() {
 					)}
 					<input className="input mt-4 text-slate-900" placeholder={t.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
 					{mode !== 'reset' && <input className="input mt-4 text-slate-900" type="password" placeholder={t.password} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />}
+					{mode !== 'reset' && <p className="mt-2 text-xs text-slate-400">Leave password empty to get a sign-in link by email.</p>}
 					<button onClick={mode === 'reset' ? handleReset : mode === 'register' ? handleRegister : handleLogin} className="btn btn-primary mt-5 w-full" disabled={busy}>{busy ? 'Working...' : `${cta} →`}</button>
+					{mode !== 'reset' && <button type="button" onClick={handleEmailLink} className="mt-3 w-full text-sm font-bold text-slate-300">Use email link instead</button>}
 					{message && <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{message}</div>}
 					{error && <div className="mt-4 rounded-xl bg-rose-50 p-4 text-sm font-bold text-rose-700">{error}</div>}
 					{mode === 'login' && <button onClick={() => setMode('reset')} className="mt-4 w-full text-sm font-bold text-emerald-400">Forgot password?</button>}
 					<div className="my-7 text-center text-sm text-slate-500">or continue with</div>
 					<div className="grid grid-cols-2 gap-3">
-						<a href="/api/auth/signin/google" className="btn glass text-center">Google</a>
-						<a href="/api/auth/signin/linkedin" className="btn glass text-center">LinkedIn</a>
-						<a href="/api/auth/signin/yandex" className="btn glass text-center">Yandex</a>
-						<a href="/api/auth/signin/hh" className="btn glass text-center">hh.ru</a>
+						<button type="button" onClick={() => handleSocialLogin('google')} className="btn glass text-center">Google</button>
+						<button type="button" onClick={() => handleSocialLogin('linkedin')} className="btn glass text-center">LinkedIn</button>
+						<button type="button" onClick={() => handleSocialLogin('yandex')} className="btn glass text-center">Yandex</button>
+						<button type="button" onClick={() => handleSocialLogin('hh')} className="btn glass text-center">hh.ru</button>
 					</div>
 					<button onClick={() => setMode(mode === 'register' ? 'login' : 'register')} className="mt-8 w-full text-center text-emerald-400">{mode === 'register' ? 'Back to sign in' : 'Create account with email'}</button>
 				</div>

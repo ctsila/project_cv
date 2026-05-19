@@ -2,11 +2,13 @@
 import AppShell from '@/components/AppShell';
 import { useState } from 'react';
 import { sampleJob } from '@/lib/storage';
+import { useWebLanguage } from '@/components/WebLanguageProvider';
 
 const LANGUAGES = ['English', 'Russian', 'Spanish', 'German'];
 const MARKETS = ['EU', 'US', 'UK', 'Germany', 'Russia/CIS', 'UAE'];
 
 export default function VacancyPage() {
+	const { language } = useWebLanguage();
 	const [url, setUrl] = useState('');
 	const [text, setText] = useState(sampleJob.sourceText);
 	const [busy, setBusy] = useState(false);
@@ -14,7 +16,14 @@ export default function VacancyPage() {
 	const [err, setErr] = useState('');
 	const [cvLanguage, setCvLanguage] = useState('English');
 	const [targetMarket, setTargetMarket] = useState('EU');
+	const [coverLetterEnabled, setCoverLetterEnabled] = useState(true);
+	const [coverLetterLanguage, setCoverLetterLanguage] = useState('English');
 	const [interviewPrep, setInterviewPrep] = useState(true);
+	const ui = {
+		en: { title: 'Vacancy Setup', subtitle: 'Use a vacancy URL, API-supported source, or paste the vacancy text manually. Analysis is blocked if the content does not look like a job posting.', url: 'Vacancy URL', text: 'Vacancy text', analyze: 'Analyze vacancy →', checking: 'Checking and parsing...', coverLetter: 'Generate cover letter', interviewPrep: 'Generate interview prep', coverLetterLabel: 'Cover letter', web: 'Web UI: English', textLink: 'Or paste vacancy text' },
+		ru: { title: 'Настройка вакансии', subtitle: 'Используйте ссылку на вакансию, источник с API или вставьте текст вручную. Анализ блокируется, если контент не похож на вакансию.', url: 'Ссылка на вакансию', text: 'Текст вакансии', analyze: 'Анализировать вакансию →', checking: 'Проверка и разбор...', coverLetter: 'Генерировать cover letter', interviewPrep: 'Генерировать подготовку к интервью', coverLetterLabel: 'Cover letter', web: 'Веб UI: английский', textLink: 'Или вставьте текст вакансии' },
+		es: { title: 'Configuración de vacante', subtitle: 'Usa una URL de vacante, una fuente compatible con API o pega el texto manualmente. El análisis se bloquea si el contenido no parece una oferta de empleo.', url: 'URL de la vacante', text: 'Texto de la vacante', analyze: 'Analizar vacante →', checking: 'Comprobando y analizando...', coverLetter: 'Generar carta de presentación', interviewPrep: 'Generar preparación para entrevista', coverLetterLabel: 'Cover letter', web: 'Web UI: inglés', textLink: 'O pega el texto de la vacante' },
+	}[language];
 
 	async function parse() {
 		setBusy(true);
@@ -23,7 +32,15 @@ export default function VacancyPage() {
 		const res = await fetch('/api/vacancy', {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ url, text, language: cvLanguage, targetMarket, interviewPrep }),
+			body: JSON.stringify({
+				url: url.trim() || '',
+				text: url.trim() ? '' : text,
+				language: cvLanguage,
+				targetMarket,
+				coverLetterEnabled,
+				coverLetterLanguage,
+				interviewPrep,
+			}),
 		});
 		const data = await res.json();
 		setBusy(false);
@@ -36,12 +53,12 @@ export default function VacancyPage() {
 
 	return (
 		<AppShell>
-			<h1 className="text-3xl font-black">Vacancy Setup</h1>
-			<p className="mt-1 text-slate-500">Use a vacancy URL, API-supported source, or paste the vacancy text manually. Analysis is blocked if the content does not look like a job posting.</p>
+			<h1 className="text-3xl font-black">{ui.title}</h1>
+			<p className="mt-1 text-slate-500">{ui.subtitle}</p>
 			<div className="card mt-8 p-6">
-				<label className="text-xs font-bold uppercase tracking-widest text-slate-400">Vacancy URL</label>
+				<label className="text-xs font-bold uppercase tracking-widest text-slate-400">{ui.url}</label>
 				<input className="input mt-2" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://hh.ru/vacancy/... or LinkedIn job URL" />
-				<label className="mt-5 block text-xs font-bold uppercase tracking-widest text-slate-400">Vacancy text</label>
+				<label className="mt-5 block text-xs font-bold uppercase tracking-widest text-slate-400">{ui.text}</label>
 				<textarea className="input mt-2 min-h-56" value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste responsibilities, requirements, skills, company and role description here" />
 				<div className="mt-5 grid grid-cols-4 gap-4">
 					<select className="input" value={cvLanguage} onChange={(e) => setCvLanguage(e.target.value)}>
@@ -50,18 +67,22 @@ export default function VacancyPage() {
 					<select className="input" value={targetMarket} onChange={(e) => setTargetMarket(e.target.value)}>
 						{MARKETS.map((market) => (<option key={market} value={market}>Target: {market}</option>))}
 					</select>
-					<select className="input" disabled>
-						<option>Web UI: English</option>
+					<select className="input" value={coverLetterLanguage} onChange={(e) => setCoverLetterLanguage(e.target.value)}>
+						{LANGUAGES.map((lang) => (<option key={lang} value={lang}>Cover letter: {lang}</option>))}
 					</select>
 					<select className="input" disabled>
-						<option>Cover letter: English</option>
+						<option>{ui.web}</option>
 					</select>
 				</div>
 				<label className="mt-4 flex items-center gap-2 rounded-xl border bg-white px-4 py-3">
-					<input type="checkbox" checked={interviewPrep} onChange={(e) => setInterviewPrep(e.target.checked)} />
-					Generate interview prep
+					<input type="checkbox" checked={coverLetterEnabled} onChange={(e) => setCoverLetterEnabled(e.target.checked)} />
+					{ui.coverLetter}
 				</label>
-				<button onClick={parse} className="btn btn-primary mt-6">{busy ? 'Checking and parsing...' : 'Analyze vacancy →'}</button>
+				<label className="mt-4 flex items-center gap-2 rounded-xl border bg-white px-4 py-3">
+					<input type="checkbox" checked={interviewPrep} onChange={(e) => setInterviewPrep(e.target.checked)} />
+					{ui.interviewPrep}
+				</label>
+				<button onClick={parse} className="btn btn-primary mt-6">{busy ? ui.checking : ui.analyze}</button>
 				{msg && <a href="/workspace" className="ml-4 font-bold text-emerald-600">{msg}</a>}
 				{err && <p className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{err}</p>}
 			</div>
