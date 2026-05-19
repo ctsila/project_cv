@@ -60,5 +60,5 @@ BASELINE=${JSON.stringify(deterministicPack)}`;
   const resume = await prisma.resumeVersion.create({ data: { userId, jobPostingId: body.jobPostingId || null, title: `Resume for ${body.job?.title || 'job'}`, content: finalPack.resume || deterministicPack.resume, language, market, score: { atsScore: finalPack.atsScore, localeScore: finalPack.localeScore, truthRisk: finalPack.truthRisk, noLiesMode, generator }, suggestions: finalPack.suggestions || [] } });
   const cover = await prisma.coverLetterVersion.create({ data: { userId, jobPostingId: body.jobPostingId || null, title: `Cover letter for ${body.job?.title || 'job'}`, content: finalPack.coverLetter || deterministicPack.coverLetter, language, tone: body.tone || 'professional' } });
   await prisma.historyItem.create({ data: { userId, type: 'resume', title: resume.title, details: `ATS ${finalPack.atsScore || 'n/a'} · ${language} · ${market} · ${noLiesMode ? 'No Lies ON' : 'No Lies OFF'}`, payload: { resumeVersionId: resume.id, coverLetterVersionId: cover.id, jobPostingId: body.jobPostingId || null, pack: finalPack, noLiesMode, generator } } });
-  return NextResponse.json({ pack: finalPack, generator, noLiesMode });
+  return NextResponse.json({ pack: finalPack, generator, noLiesMode, resumeVersionId: resume.id, coverLetterVersionId: cover.id, jobPostingId: body.jobPostingId || null });
 }
