@@ -1,14 +1,20 @@
+<<<<<<< HEAD
 import GoogleProvider from 'next-auth/providers/google';
 import LinkedInProvider from 'next-auth/providers/linkedin';
 import YandexProvider from 'next-auth/providers/yandex';
 import EmailProvider from 'next-auth/providers/email';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import type { AuthOptions } from 'next-auth';
+=======
+import CredentialsProvider from 'next-auth/providers/credentials';
+import type { NextAuthOptions } from 'next-auth';
+>>>>>>> 475a928ccaa35cdc12da7906e7db53c29a96b8a9
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { sendSignInLinkEmail } from '@/lib/email';
 
+<<<<<<< HEAD
 function buildHhProvider(): any {
   if (!process.env.HH_CLIENT_ID || !process.env.HH_CLIENT_SECRET) return null;
 
@@ -56,6 +62,11 @@ export const authOptions: AuthOptions = {
         await sendSignInLinkEmail(identifier, url);
       },
     }),
+=======
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+>>>>>>> 475a928ccaa35cdc12da7906e7db53c29a96b8a9
     CredentialsProvider({
       id: 'credentials',
       name: 'Email and password',
@@ -74,8 +85,9 @@ export const authOptions: AuthOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: 'jwt' },
+  pages: { signIn: '/' },
   callbacks: {
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) (session.user as any).id = token.sub;
       return session;
     },

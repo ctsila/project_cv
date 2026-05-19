@@ -1,54 +1,9 @@
 'use client';
 import AppShell from '@/components/AppShell';
-import { useEffect, useState } from 'react';
+import { safeJson } from '@/lib/http';
+import { getUiLang, type UiLang } from '@/lib/i18n';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
-export default function Dashboard() {
-	const [apps, setApps] = useState<any[]>([]);
-
-	useEffect(() => {
-		let ignore = false;
-		async function load() {
-			const res = await fetch('/api/applications');
-			const data = await res.json();
-			if (!ignore) setApps(data.items || []);
-		}
-		load();
-		return () => {
-			ignore = true;
-		};
-	}, []);
-
-	return (
-		<AppShell>
-			<h1 className="text-3xl font-black">Good afternoon 👋</h1>
-			<p className="mt-1 text-slate-500">Track your applications, vacancy imports, and resume drafts from one place.</p>
-			<div className="mt-8 grid grid-cols-4 gap-5">
-				{['New application', 'Import vacancy', 'Build resume', 'Continue draft'].map((x) => (
-					<div className="card p-6" key={x}>
-						<div className="text-2xl">⚡</div>
-						<h3 className="mt-4 font-black">{x}</h3>
-						<p className="mt-1 text-sm text-slate-500">Paste, generate, compare, export.</p>
-					</div>
-				))}
-			</div>
-			<section className="card mt-6 p-5">
-				<div className="flex justify-between">
-					<b>Recent applications</b>
-					<a className="text-sm font-bold text-emerald-600" href="/tracker">View all →</a>
-				</div>
-				{apps.length ? apps.slice(0, 5).map((a) => {
-					const lang = a.jobPosting?.language === 'en' ? 'EN' : a.jobPosting?.language || 'EN';
-					return (
-					<div key={a.id} className="mt-5 flex items-center justify-between border-b pb-4 last:border-0">
-						<div>
-							<b>{a.jobPosting?.title || 'Application'}</b>
-							<p className="text-sm text-slate-500">{a.jobPosting?.targetMarket || 'EU'} · {lang}</p>
-						</div>
-						<span className="pill bg-slate-100 text-slate-600">{a.status}</span>
-					</div>
-				);
-				}) : <div className="mt-6 rounded-2xl border border-dashed p-8 text-center text-slate-500">No applications yet. Create one from a parsed vacancy.</div>}
-			</section>
-		</AppShell>
-	);
-}
+const copy:any={en:{hello:'Dashboard',desc:'This page is calculated from your saved profile, parsed vacancies, generated documents, and application tracker.',sources:'Data sources',profile:'Profile',vacancies:'Parsed vacancies',generated:'Generated documents',apps:'Applications',recent:'Recent applications',view:'View all',empty:'No applications yet. Generate a CV in Resume Builder, then save the vacancy to tracker.',actions:['Upload CV','Add vacancy','Build resume','Open tracker'],explain:['Career profile completeness','Vacancies saved from the Vacancies page','CVs and cover letters generated in Resume Builder','Statuses saved through Resume Builder or Tracker']},ru:{hello:'Панель',desc:'Эта страница считается из сохраненного профиля, разобранных вакансий, созданных документов и трекера откликов.',sources:'Источники данных',profile:'Профиль',vacancies:'Разобранные вакансии',generated:'Созданные документы',apps:'Отклики',recent:'Последние отклики',view:'Смотреть все',empty:'Откликов пока нет. Создайте резюме в Конструкторе, затем сохраните вакансию в трекер.',actions:['Загрузить CV','Добавить вакансию','Создать резюме','Открыть трекер'],explain:['Заполненность карьерного профиля','Вакансии из раздела Вакансии','CV и письма из Конструктора резюме','Статусы из Конструктора или Трекера']},es:{hello:'Panel',desc:'Esta página se calcula desde tu perfil, vacantes, documentos generados y seguimiento.',sources:'Fuentes de datos',profile:'Perfil',vacancies:'Vacantes',generated:'Documentos',apps:'Candidaturas',recent:'Candidaturas recientes',view:'Ver todo',empty:'Aún no hay candidaturas.',actions:['Cargar CV','Añadir vacante','Crear CV','Abrir seguimiento'],explain:['Completitud del perfil','Vacantes guardadas','CVs y cartas generadas','Estados del seguimiento']}};
+export default function Dashboard(){const [apps,setApps]=useState<any[]>([]);const [jobs,setJobs]=useState<any[]>([]);const [history,setHistory]=useState<any[]>([]);const [profile,setProfile]=useState<any>(null);const [lang,setLang]=useState<UiLang>('en');useEffect(()=>{setLang(getUiLang());let ignore=false;async function load(){const [appsRes,jobsRes,historyRes,profileRes]=await Promise.all([fetch('/api/applications'),fetch('/api/job-postings'),fetch('/api/history'),fetch('/api/profile')]);const [appsData,jobsData,historyData,profileData]=await Promise.all([safeJson(appsRes),safeJson(jobsRes),safeJson(historyRes),safeJson(profileRes)]);if(ignore)return;setApps(appsData.items||[]);setJobs(jobsData.jobs||jobsData.items||[]);setHistory(historyData.items||[]);setProfile(profileData.profile||null)}load();return()=>{ignore=true}},[]);const t=copy[lang];const generated=history.filter(x=>x.type==='resume'||x.type==='cover-letter').length;const profileScore=useMemo(()=>{if(!profile)return 0;return Math.min(100,Math.round(([profile.name,profile.title,profile.summary].filter(Boolean).length*10)+((profile.experience||[]).length?25:0)+((profile.education||[]).length?15:0)+Math.min((profile.skills||[]).length,10)*2+((profile.languages||[]).length?10:0)))},[profile]);const cards=[{title:t.profile,value:`${profileScore}%`,note:t.explain[0],href:'/profile'},{title:t.vacancies,value:jobs.length,note:t.explain[1],href:'/vacancy'},{title:t.generated,value:generated,note:t.explain[2],href:'/history'},{title:t.apps,value:apps.length,note:t.explain[3],href:'/tracker'}];const actions=[['/profile',t.actions[0]],['/vacancy',t.actions[1]],['/workspace',t.actions[2]],['/tracker',t.actions[3]]];return <AppShell><h1 className="text-3xl font-black">{t.hello}</h1><p className="mt-1 max-w-3xl text-slate-500">{t.desc}</p><section className="card mt-6 p-5"><b>{t.sources}</b><div className="mt-4 grid grid-cols-4 gap-4">{cards.map(c=><Link href={c.href} key={c.title} className="rounded-2xl border p-5 hover:bg-slate-50"><div className="text-sm font-bold text-slate-500">{c.title}</div><div className="mt-3 text-4xl font-black text-slate-900">{c.value}</div><p className="mt-2 text-xs leading-5 text-slate-500">{c.note}</p></Link>)}</div></section><div className="mt-8 grid grid-cols-4 gap-5">{actions.map(([href,label])=><Link className="card p-6 hover:ring-2 hover:ring-emerald-200" href={href} key={href}><div className="text-2xl">⚡</div><h3 className="mt-4 font-black">{label}</h3><p className="mt-1 text-sm text-slate-500">Paste, generate, compare, export.</p></Link>)}</div><section className="card mt-6 p-5"><div className="flex justify-between"><b>{t.recent}</b><Link className="text-sm font-bold text-emerald-600" href="/tracker">{t.view} →</Link></div>{apps.length?apps.slice(0,5).map(a=>{const lang=a.jobPosting?.language==='en'?'EN':a.jobPosting?.language||'EN';return <div key={a.id} className="mt-5 flex items-center justify-between border-b pb-4 last:border-0"><div><b>{a.jobPosting?.title||'Application'}</b><p className="text-sm text-slate-500">{a.jobPosting?.targetMarket||'EU'} · {lang}</p></div><span className="pill bg-slate-100 text-slate-600">{a.status}</span></div>}):<div className="mt-6 rounded-2xl border border-dashed p-8 text-center text-slate-500">{t.empty}</div>}</section></AppShell>}
