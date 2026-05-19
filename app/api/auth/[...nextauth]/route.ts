@@ -3,12 +3,12 @@ import GoogleProvider from 'next-auth/providers/google';
 import LinkedInProvider from 'next-auth/providers/linkedin';
 import YandexProvider from 'next-auth/providers/yandex';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@auth/prisma-adapter';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { compare } from 'bcryptjs';
 import { prisma } from '@/lib/db';
 
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID || 'missing', clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'missing' }),
     LinkedInProvider({ clientId: process.env.LINKEDIN_CLIENT_ID || 'missing', clientSecret: process.env.LINKEDIN_CLIENT_SECRET || 'missing' }),
