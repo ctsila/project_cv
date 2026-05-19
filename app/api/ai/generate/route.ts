@@ -11,9 +11,26 @@ function wantsSpanish(language: string) { return language.toLowerCase().includes
 function wrongLanguage(pack: any, language: string) {
   const text = `${pack?.resume || ''}\n${pack?.coverLetter || ''}`;
   if (!text.trim()) return true;
-  if (wantsRussian(language)) return !/[А-Яа-яЁё]/.test(text);
+  if (wantsRussian(language)) return !/[А-Яа-яЁё]/.test(text) || /SUMMARY|EXPERIENCE|EDUCATION|Dear Hiring Team|Best regards/i.test(text);
   if (wantsSpanish(language)) return /SUMMARY|EXPERIENCE|EDUCATION|Dear Hiring Team/i.test(text) && !/RESUMEN|EXPERIENCIA|EDUCACIÓN|Estimado/i.test(text);
   return false;
+}
+function languageInstruction(language: string) {
+  if (wantsRussian(language)) return 'Russian only. All headings, summary, bullets, cover letter, suggestions, missing requirements and interview questions must be in Russian. Translate profile facts into Russian without adding new facts.';
+  if (wantsSpanish(language)) return 'Spanish only. Translate all headings, bullets, cover letter and suggestions into Spanish without adding new facts.';
+  return `${language} only.`;
+}
+async function repairLanguage(client: OpenAI, pack: any, language: string) {
+  const out = await client.chat.completions.create({
+    model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+    temperature: 0,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: `Rewrite this JSON content into ${language}. ${languageInstruction(language)} Preserve JSON shape and factual meaning. Do not add facts.` },
+      { role: 'user', content: JSON.stringify(pack) }
+    ]
+  });
+  return JSON.parse(out.choices[0].message.content || '{}');
 }
 
 export async function POST(req: NextRequest) {
@@ -33,7 +50,8 @@ export async function POST(req: NextRequest) {
   if (key) {
     try {
       const client = new OpenAI({ apiKey: key });
-      const prompt = `Generate a tailored CV and cover letter in ${language}. Target market: ${market}. No Lies Mode: ${noLiesMode ? 'ON' : 'OFF'}.
+      const prompt = `Generate a tailored CV and cover letter. CV language selected by the user: ${language}. Target market: ${market}. No Lies Mode: ${noLiesMode ? 'ON' : 'OFF'}.
+Language rule: ${languageInstruction(language)}
 When No Lies Mode is ON, use only facts from PROFILE and never invent metrics, employers, tools, dates, certificates or impact. When a vacancy requirement is unsupported, put it into missing/weakEvidence. When No Lies Mode is OFF, you may improve wording and structure, but still must not fabricate specific employers, dates, degrees or certifications.
 Return strict JSON with fields: atsScore number, localeScore number, truthRisk low|medium|high, matched string[], missing string[], weakEvidence string[], resume string, coverLetter string, interviewQuestions string[], suggestions array of {original,rewrite,why,evidence,risk}.
 PROFILE=${JSON.stringify(body.profile)}
@@ -42,15 +60,20 @@ BASELINE=${JSON.stringify(deterministicPack)}`;
       const out = await client.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
         messages: [
-          { role: 'system', content: `You are a career document generator. Output language must be exactly ${language}. Do not switch to English unless ${language} is English. Return JSON only.` },
+          { role: 'system', content: `You are a career document generator. ${languageInstruction(language)} Return JSON only.` },
           { role: 'user', content: prompt }
         ],
-        temperature: noLiesMode ? .15 : .35,
+        temperature: noLiesMode ? .1 : .25,
         response_format: { type: 'json_object' }
       });
-      const parsed = JSON.parse(out.choices[0].message.content || '{}');
-      if (!wrongLanguage(parsed, language)) { pack = parsed; generator = 'openai'; }
-      else { pack = deterministicPack; generator = 'deterministic-language-guard'; }
+      let parsed = JSON.parse(out.choices[0].message.content || '{}');
+      if (wrongLanguage(parsed, language)) {
+        parsed = await repairLanguage(client, parsed, language);
+        generator = wrongLanguage(parsed, language) ? 'deterministic-language-guard' : 'openai-language-repair';
+      } else {
+        generator = 'openai';
+      }
+      pack = wrongLanguage(parsed, language) ? deterministicPack : parsed;
     } catch (error) {
       console.error('OpenAI generation failed, using deterministic generator:', error);
       pack = deterministicPack;
