@@ -5,16 +5,61 @@ import { prisma } from '@/lib/db';
 import { getClientIp, rateLimit } from '@/lib/rate-limit';
 import { isProbablyCv } from '@/lib/cv-parser';
 import { parseCvStructured } from '@/lib/cv-structured-parser';
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+async function extractPdfWithPdfParse(buffer: Buffer) {
+  const mod: any = await import('pdf-parse');
+  const parser = mod.default || mod;
+  const parsed = await parser(buffer);
+  return String(parsed?.text || '').trim();
+}
+
+async function extractPdfWithPdfJs(buffer: Buffer) {
+  // pdfjs-dist is kept as a fallback because pdf-parse can fail on some bundled/runtime PDFs.
+  const mod: any = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const loadingTask = mod.getDocument({
+    data: new Uint8Array(buffer),
+    disableFontFace: true,
+    useSystemFonts: true,
+    isEvalSupported: false,
+  });
+  const doc = await loadingTask.promise;
+  const pages: string[] = [];
+  for (let pageNo = 1; pageNo <= doc.numPages; pageNo += 1) {
+    const page = await doc.getPage(pageNo);
+    const content = await page.getTextContent();
+    pages.push(content.items.map((item: any) => item.str || '').join(' '));
+  }
+  await doc.destroy?.();
+  return pages.join('\n').trim();
+}
+
+async function extractPdfText(buffer: Buffer) {
+  const errors: string[] = [];
+  try {
+    const text = await extractPdfWithPdfParse(buffer);
+    if (text.length > 20) return text;
+    errors.push('pdf-parse returned empty text');
+  } catch (error) {
+    errors.push(`pdf-parse: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  try {
+    const text = await extractPdfWithPdfJs(buffer);
+    if (text.length > 20) return text;
+    errors.push('pdfjs returned empty text');
+  } catch (error) {
+    errors.push(`pdfjs: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  throw new Error(`Could not extract readable text from this PDF. It may be scanned/image-based, protected, or malformed. ${errors.join(' | ')}`);
+}
+
 async function extractText(fileName: string, buffer: Buffer, mimeType: string) {
   const lower = fileName.toLowerCase();
   if (mimeType === 'text/plain' || lower.endsWith('.txt')) return buffer.toString('utf-8');
-  if (mimeType === 'application/pdf' || lower.endsWith('.pdf')) return (await pdf(buffer)).text || '';
+  if (mimeType === 'application/pdf' || lower.endsWith('.pdf')) return extractPdfText(buffer);
   if (lower.endsWith('.docx') || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return (await mammoth.extractRawText({ buffer })).value || '';
   if (lower.endsWith('.doc') || mimeType === 'application/msword') throw new Error('Legacy .doc files are not reliably readable. Save as DOCX, PDF, or paste text.');
   throw new Error('Unsupported file format. Upload PDF, DOCX, TXT, or paste CV text.');
@@ -65,7 +110,7 @@ export async function POST(req: NextRequest) {
       extractedText = (await extractText(sourceName, Buffer.from(await file.arrayBuffer()), mimeType)).trim();
     }
     if (!extractedText) return NextResponse.json({ error: 'Could not extract text from this CV. Try DOCX/TXT or paste the text manually.' }, { status: 400 });
-    if (!isProbablyCv(extractedText)) return NextResponse.json({ error: 'This does not look like a CV. Upload a resume with experience, education, skills, or contact details.', extractedPreview: extractedText.slice(0, 300) }, { status: 400 });
+    if (!isProbablyCv(extractedText)) return NextResponse.json({ error: 'Text was extracted, but it does not look like a CV. Try DOCX/TXT or paste the CV text manually.', extractedPreview: extractedText.slice(0, 500) }, { status: 400 });
     const parsed = await parseCvStructured(extractedText);
     const parsedProfile = parsed.profile;
     const persistence = await persistParsedProfile(userId, parsedProfile, sourceName, extractedText, mimeType);
