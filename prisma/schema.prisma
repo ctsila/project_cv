@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  image          String?
+  passwordHash   String?
+  country        String?
+  uiLanguage     String    @default("en")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  profiles       CareerProfile[]
+  jobs           JobPosting[]
+  resumes        ResumeVersion[]
+  coverLetters   CoverLetterVersion[]
+  applications   Application[]
+  history        HistoryItem[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model CareerProfile {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String?
+  title       String?
+  location    String?
+  phone       String?
+  links       Json     @default("[]")
+  summary     String?  @db.Text
+  skills      Json     @default("[]")
+  languages   Json     @default("[]")
+  evidence    Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences ExperienceItem[]
+  education   EducationItem[]
+  projects    Project[]
+  certifications Certification[]
+}
+
+model ExperienceItem {
+  id        String @id @default(cuid())
+  profileId String
+  company   String
+  role      String
+  location  String?
+  startDate String?
+  endDate   String?
+  bullets   Json   @default("[]")
+  evidence  Json   @default("[]")
+  profile   CareerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model EducationItem {
+  id        String @id @default(cuid())
+  profileId String
+  school    String
+  degree    String?
+  field     String?
+  startDate String?
+  endDate   String?
+  profile   CareerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id        String @id @default(cuid())
+  profileId String
+  name      String
+  summary   String? @db.Text
+  skills    Json    @default("[]")
+  evidence  Json    @default("[]")
+  profile   CareerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Certification {
+  id        String @id @default(cuid())
+  profileId String
+  name      String
+  issuer    String?
+  issuedAt  String?
+  profile   CareerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Company {
+  id        String @id @default(cuid())
+  name      String
+  website   String?
+  overview  String? @db.Text
+  signals   Json    @default("[]")
+  createdAt DateTime @default(now())
+  jobs      JobPosting[]
+}
+
+model JobPosting {
+  id              String   @id @default(cuid())
+  userId          String
+  companyId       String?
+  title           String
+  sourceUrl       String?
+  sourceText      String   @db.Text
+  language        String   @default("en")
+  targetMarket    String   @default("EU")
+  analysis        Json     @default("{}")
+  relevance       Json     @default("{}")
+  companySignals  Json     @default("[]")
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company         Company? @relation(fields: [companyId], references: [id])
+  resumes         ResumeVersion[]
+  coverLetters    CoverLetterVersion[]
+  applications    Application[]
+}
+
+model ResumeVersion {
+  id             String   @id @default(cuid())
+  userId         String
+  jobPostingId   String?
+  version        Int      @default(1)
+  title          String
+  content        String   @db.Text
+  language       String
+  market         String
+  score          Json     @default("{}")
+  suggestions    Json     @default("[]")
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting     JobPosting? @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
+  applications   Application[]
+}
+
+model CoverLetterVersion {
+  id             String   @id @default(cuid())
+  userId         String
+  jobPostingId   String?
+  title          String
+  content        String   @db.Text
+  language       String
+  tone           String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting     JobPosting? @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
+  applications   Application[]
+}
+
+model InterviewPrepSet {
+  id        String @id @default(cuid())
+  userId    String
+  jobPostingId String?
+  questions Json @default("[]")
+  talkingPoints Json @default("[]")
+  createdAt DateTime @default(now())
+}
+
+model Application {
+  id             String   @id @default(cuid())
+  userId         String
+  jobPostingId   String?
+  resumeVersionId String?
+  coverLetterVersionId String?
+  status         String   @default("Saved")
+  notes          String?  @db.Text
+  reminderAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPosting     JobPosting? @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
+  resumeVersion  ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+  coverLetterVersion CoverLetterVersion? @relation(fields: [coverLetterVersionId], references: [id], onDelete: SetNull)
+}
+
+model HistoryItem {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  details   String?
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GenerationJob {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  status    String   @default("queued")
+  input     Json     @default("{}")
+  output    Json     @default("{}")
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
