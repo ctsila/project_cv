@@ -75,14 +75,15 @@ export async function POST(req: NextRequest) {
     }
     if (!extractedText) return NextResponse.json({ error: 'Could not extract text from this CV. Try DOCX/TXT or paste the text manually.' }, { status: 400 });
     if (!isProbablyCv(extractedText)) return NextResponse.json({ error: 'This does not look like a CV. Upload a resume with experience, education, skills, or contact details.', extractedPreview: extractedText.slice(0, 300) }, { status: 400 });
-    const parsedProfile = await parseCvStructured(extractedText);
+    const parsed = await parseCvStructured(extractedText);
+    const parsedProfile = parsed.profile;
     const session = await getServerSession(authOptions);
     let persistence = null;
     if (session?.user) {
       const userId = (session.user as any).id as string;
       persistence = await persistParsedProfile(userId, parsedProfile, sourceName, extractedText, mimeType);
     }
-    return NextResponse.json({ ok: true, sourceName, extractedTextLength: extractedText.length, parsedProfile, persistence, parser: process.env.OPENAI_API_KEY ? 'ai-structured' : 'heuristic-fallback' });
+    return NextResponse.json({ ok: true, sourceName, extractedTextLength: extractedText.length, parsedProfile, persistence, parser: parsed.parser, parserWarning: parsed.warning, counts: { experience: parsedProfile.experience?.length || 0, education: parsedProfile.education?.length || 0, skills: parsedProfile.skills?.length || 0, projects: parsedProfile.projects?.length || 0, certifications: parsedProfile.certifications?.length || 0, languages: parsedProfile.languages?.length || 0 } });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: 'CV upload failed. Try DOCX/TXT or paste the CV text manually.', detail: process.env.NODE_ENV === 'production' ? undefined : detail }, { status: 500 });
