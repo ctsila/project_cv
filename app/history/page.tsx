@@ -1,39 +1,60 @@
 'use client';
 import AppShell from '@/components/AppShell';
+import { safeJson } from '@/lib/http';
 import { useEffect, useState } from 'react';
 
 export default function HistoryPage() {
-	const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any>(null);
+  const [error, setError] = useState('');
 
-	useEffect(() => {
-		let ignore = false;
-		async function load() {
-			const res = await fetch('/api/history');
-			const data = await res.json();
-			if (!ignore) setItems(data.items || []);
-		}
-		load();
-		return () => {
-			ignore = true;
-		};
-	}, []);
+  async function loadDetail(id: string) {
+    setError('');
+    const res = await fetch(`/api/history/${id}`);
+    const data = await safeJson(res);
+    if (!res.ok) { setError(data.error || 'Could not open history item.'); return; }
+    setSelected(data);
+  }
 
-	return (
-		<AppShell>
-			<h1 className="text-3xl font-black">Generation and Upload History</h1>
-			<p className="mt-1 text-slate-500">Every parsed vacancy, uploaded profile source, generated resume, cover letter and interview-prep set is recorded here.</p>
-			<section className="card mt-8 p-5">
-				{items.length ? items.map((x) => (
-					<div key={x.id} className="flex items-center justify-between border-b py-4 last:border-0">
-						<div>
-							<span className="pill bg-slate-100 text-slate-600">{x.type}</span>
-							<b className="ml-3">{x.title}</b>
-							<p className="mt-2 text-sm text-slate-500">{x.details}</p>
-						</div>
-						<time className="text-sm text-slate-400">{new Date(x.createdAt).toLocaleString()}</time>
-					</div>
-				)) : <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">No history yet. Parse a vacancy or generate a resume to create the first record.</div>}
-			</section>
-		</AppShell>
-	);
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      const res = await fetch('/api/history');
+      const data = await safeJson(res);
+      if (!ignore) setItems(data.items || []);
+    }
+    load();
+    return () => { ignore = true; };
+  }, []);
+
+  return (
+    <AppShell>
+      <h1 className="text-3xl font-black">Generation and Upload History</h1>
+      <p className="mt-1 text-slate-500">Open any parsed vacancy, uploaded CV, generated resume, cover letter, or interview-prep record.</p>
+      {error && <div className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{error}</div>}
+      <div className="mt-8 grid grid-cols-[.85fr_1.15fr] gap-6">
+        <section className="card p-5">
+          {items.length ? items.map((x) => (
+            <button key={x.id} onClick={() => loadDetail(x.id)} className="block w-full border-b py-4 text-left last:border-0 hover:bg-slate-50">
+              <span className="pill bg-slate-100 text-slate-600">{x.type}</span>
+              <b className="ml-3">{x.title}</b>
+              <p className="mt-2 text-sm text-slate-500">{x.details}</p>
+              <time className="mt-2 block text-xs text-slate-400">{new Date(x.createdAt).toLocaleString()}</time>
+            </button>
+          )) : <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">No history yet. Parse a vacancy or generate a resume to create the first record.</div>}
+        </section>
+        <section className="card p-6">
+          {selected ? <div>
+            <div className="flex items-center justify-between"><h2 className="text-2xl font-black">{selected.item.title}</h2><span className="pill bg-slate-100 text-slate-600">{selected.item.type}</span></div>
+            <p className="mt-2 text-sm text-slate-500">{selected.item.details}</p>
+            {selected.jobPosting && <div className="mt-6"><h3 className="font-black">Parsed vacancy</h3><pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6">{selected.jobPosting.sourceText}</pre></div>}
+            {selected.resume && <div className="mt-6"><h3 className="font-black">Generated CV / Resume</h3><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6">{selected.resume.content}</pre></div>}
+            {selected.coverLetter && <div className="mt-6"><h3 className="font-black">Generated cover letter</h3><pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6">{selected.coverLetter.content}</pre></div>}
+            {selected.cvSource && <div className="mt-6"><h3 className="font-black">Uploaded CV text</h3><pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-6">{selected.cvSource.extractedText}</pre></div>}
+            {selected.item.payload?.pack && <div className="mt-6"><h3 className="font-black">Match details</h3><pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-xs leading-5">{JSON.stringify(selected.item.payload.pack, null, 2)}</pre></div>}
+          </div> : <div className="rounded-2xl border border-dashed p-10 text-center text-slate-500">Select a history item to view the parsed vacancy and generated documents.</div>}
+        </section>
+      </div>
+    </AppShell>
+  );
 }
