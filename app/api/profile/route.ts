@@ -10,6 +10,7 @@ function toClientProfile(profile: any) {
     name: profile.name || '',
     title: profile.title || '',
     email: profile.user?.email || '',
+    photoDataUrl: profile.user?.image || '',
     location: profile.location || '',
     phone: profile.phone || '',
     links: profile.links || [],
@@ -43,6 +44,12 @@ export async function PUT(req: NextRequest) {
   const userId = (session.user as any).id as string;
   const body = await req.json();
   if (!body) return NextResponse.json({ error: 'Profile payload is required.' }, { status: 400 });
+  if (typeof body.photoDataUrl === 'string') {
+    if (!body.photoDataUrl || body.photoDataUrl.startsWith('data:image/')) {
+      if (body.photoDataUrl.length > 2_500_000) return NextResponse.json({ error: 'Profile photo is too large. Use an image under about 2 MB.' }, { status: 400 });
+      await prisma.user.update({ where: { id: userId }, data: { image: body.photoDataUrl || null } });
+    }
+  }
   const existing = await prisma.careerProfile.findFirst({ where: { userId } });
   const profile = await prisma.careerProfile.upsert({
     where: { id: existing?.id || 'missing' },
