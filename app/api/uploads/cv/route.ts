@@ -3,114 +3,120 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getClientIp, rateLimit } from '@/lib/rate-limit';
-import { mkdir, writeFile } from 'fs/promises';
-import path from 'path';
-import crypto from 'crypto';
+import { parseCvText, isProbablyCv } from '@/lib/cv-parser';
 import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export const runtime = 'nodejs';
-
-const CV_KEYWORDS = [
-  'experience',
-  'work history',
-  'employment',
-  'education',
-  'skills',
-  'projects',
-  'certifications',
-  'summary',
-  'profile',
-  'objective',
-  'languages',
-  'achievements',
-  'responsibilities',
-];
-
-function looksLikeCv(text: string) {
-  const cleaned = text.toLowerCase();
-  const hits = CV_KEYWORDS.filter((k) => cleaned.includes(k)).length;
-  const hasEmail = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(text);
-  const hasPhone = /\+?\d[\d\s()\-]{7,}/.test(text);
-  return text.trim().length > 300 && hits >= 2 && (hasEmail || hasPhone);
-}
+export const dynamic = 'force-dynamic';
 
 async function extractText(fileName: string, buffer: Buffer, mimeType: string) {
-  if (mimeType === 'text/plain' || fileName.endsWith('.txt')) return buffer.toString('utf-8');
-  if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
-    const data = await pdf(buffer);
-    return data.text || '';
+  const lower = fileName.toLowerCase();
+  if (mimeType === 'text/plain' || lower.endsWith('.txt')) return buffer.toString('utf-8');
+  if (mimeType === 'application/pdf' || lower.endsWith('.pdf')) {
+    const parsed = await pdf(buffer);
+    return parsed.text || '';
   }
-  if (mimeType === 'application/msword' || fileName.endsWith('.doc')) {
-    return '';
+  if (lower.endsWith('.docx') || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const parsed = await mammoth.extractRawText({ buffer });
+    return parsed.value || '';
   }
-  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
-    const { value } = await mammoth.extractRawText({ buffer });
-    return value || '';
+  if (lower.endsWith('.doc') || mimeType === 'application/msword') {
+    throw new Error('Legacy .doc files are not reliably readable in this runtime. Save the CV as DOCX, PDF, or paste text.');
   }
-  return '';
+  throw new Error('Unsupported file format. Upload PDF, DOCX, TXT, or paste CV text.');
+}
+
+async function persistParsedProfile(userId: string, parsedProfile: any, sourceName: string, extractedText: string, mimeType: string) {
+  const profile = await prisma.careerProfile.upsert({
+    where: { id: (await prisma.careerProfile.findFirst({ where: { userId }, select: { id: true } }))?.id || 'new-profile' },
+    create: {
+      userId,
+      name: parsedProfile.name,
+      title: parsedProfile.title,
+      location: parsedProfile.location,
+      links: parsedProfile.links || [],
+      summary: parsedProfile.summary,
+      skills: parsedProfile.skills || [],
+      languages: parsedProfile.languages || [],
+      evidence: parsedProfile.evidence || [],
+    },
+    update: {
+      name: parsedProfile.name,
+      title: parsedProfile.title,
+      location: parsedProfile.location,
+      links: parsedProfile.links || [],
+      summary: parsedProfile.summary,
+      skills: parsedProfile.skills || [],
+      languages: parsedProfile.languages || [],
+      evidence: parsedProfile.evidence || [],
+    },
+  });
+
+  const exp = parsedProfile.experience?.[0];
+  if (exp) {
+    await prisma.experienceItem.create({
+      data: {
+        profileId: profile.id,
+        company: exp.company || 'Company from CV',
+        role: exp.role || parsedProfile.title || 'Role from CV',
+        location: exp.location,
+        startDate: exp.start || '',
+        endDate: exp.end || '',
+        bullets: exp.bullets || [],
+        evidence: exp.evidence || ['Source: uploaded CV'],
+      },
+    });
+  }
+
+  const safeName = sourceName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const record = await prisma.cvSource.create({
+    data: { userId, fileName: safeName, fileType: mimeType || 'text/plain', storagePath: safeName, extractedText, isValid: true },
+  });
+  await prisma.historyItem.create({
+    data: { userId, type: 'upload', title: `CV upload: ${safeName}`, details: mimeType || 'text/plain', payload: { cvSourceId: record.id } },
+  });
+  return { profileId: profile.id, cvSourceId: record.id };
 }
 
 export async function POST(req: NextRequest) {
-  const limit = rateLimit(`cv-upload:${getClientIp(req)}`, 12);
-  if (!limit.allowed) return NextResponse.json({ error: 'Too many uploads.' }, { status: 429 });
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const userId = (session.user as any).id as string;
-  const formData = await req.formData();
-  const file = formData.get('file');
-  const text = formData.get('text');
+  const limit = rateLimit(`cv-upload:${getClientIp(req)}`, 20);
+  if (!limit.allowed) return NextResponse.json({ error: 'Too many CV upload attempts. Try again later.' }, { status: 429 });
 
-  let fileName = '';
-  let mimeType = '';
-  let buffer: Buffer | null = null;
-  let extractedText = '';
+  try {
+    const formData = await req.formData();
+    const file = formData.get('file');
+    const pastedText = String(formData.get('text') || '');
+    let sourceName = 'pasted-cv.txt';
+    let mimeType = 'text/plain';
+    let extractedText = pastedText.trim();
 
-  if (file && file instanceof File) {
-    fileName = file.name || 'cv';
-    mimeType = file.type || 'application/octet-stream';
-    buffer = Buffer.from(await file.arrayBuffer());
-    extractedText = await extractText(fileName, buffer, mimeType);
-  } else if (typeof text === 'string') {
-    fileName = 'cv.txt';
-    mimeType = 'text/plain';
-    extractedText = text;
-    buffer = Buffer.from(text, 'utf-8');
+    if (file instanceof File) {
+      sourceName = file.name || 'cv';
+      mimeType = file.type || 'application/octet-stream';
+      if (file.size > 8 * 1024 * 1024) return NextResponse.json({ error: 'File is too large. Upload a CV below 8 MB.' }, { status: 400 });
+      const buffer = Buffer.from(await file.arrayBuffer());
+      extractedText = (await extractText(sourceName, buffer, mimeType)).trim();
+    }
+
+    if (!extractedText) return NextResponse.json({ error: 'Could not extract text from this CV. Try DOCX/TXT or paste the text manually.' }, { status: 400 });
+    if (!isProbablyCv(extractedText)) return NextResponse.json({ error: 'This does not look like a CV. Upload a resume with experience, education, skills, or contact details.', extractedPreview: extractedText.slice(0, 300) }, { status: 400 });
+
+    const parsedProfile = parseCvText(extractedText);
+    const session = await getServerSession(authOptions);
+    let persistence = null;
+    if (session?.user) {
+      const userId = (session.user as any).id as string;
+      try {
+        persistence = await persistParsedProfile(userId, parsedProfile, sourceName, extractedText, mimeType);
+      } catch (dbError) {
+        console.error('CV parsed but database persistence failed:', dbError);
+      }
+    }
+
+    return NextResponse.json({ ok: true, sourceName, extractedTextLength: extractedText.length, parsedProfile, persistence });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: 'CV upload failed. Try DOCX/TXT or paste the CV text manually.', detail: process.env.NODE_ENV === 'production' ? undefined : detail }, { status: 500 });
   }
-
-  if (!buffer) return NextResponse.json({ error: 'CV text or file is required.' }, { status: 400 });
-  if (!extractedText.trim()) return NextResponse.json({ error: 'Could not read this file. Upload a text, PDF, or DOCX CV.' }, { status: 400 });
-
-  const isValid = looksLikeCv(extractedText);
-  if (!isValid) return NextResponse.json({ error: 'This does not look like a CV. Include summary, experience, education, or skills sections.' }, { status: 400 });
-
-  const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-  await mkdir(uploadDir, { recursive: true });
-  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const storedName = `${crypto.randomUUID()}-${safeName}`;
-  const storagePath = path.join(uploadDir, storedName);
-  await writeFile(storagePath, buffer);
-
-  const record = await prisma.cvSource.create({
-    data: {
-      userId,
-      fileName: safeName,
-      fileType: mimeType,
-      storagePath,
-      extractedText,
-      isValid,
-    },
-  });
-
-  await prisma.historyItem.create({
-    data: {
-      userId,
-      type: 'upload',
-      title: `CV upload: ${safeName}`,
-      details: mimeType,
-      payload: { cvSourceId: record.id },
-    },
-  });
-
-  return NextResponse.json({ ok: true, cvSource: { id: record.id, fileName: record.fileName, createdAt: record.createdAt } });
 }
