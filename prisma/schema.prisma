@@ -26,6 +26,7 @@ model User {
   coverLetters   CoverLetterVersion[]
   applications   Application[]
   history        HistoryItem[]
+  cvSources      CvSource[]
 }
 
 model Account {
@@ -232,4 +233,16 @@ model GenerationJob {
   error     String?  @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CvSource {
+  id            String   @id @default(cuid())
+  userId        String
+  fileName      String
+  fileType      String
+  storagePath   String
+  extractedText String   @db.Text
+  isValid       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
