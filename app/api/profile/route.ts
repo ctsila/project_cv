@@ -18,6 +18,8 @@ function toClientProfile(profile: any) {
     languages: profile.languages || [],
     evidence: profile.evidence || [],
     education: (profile.education || []).map((e: any) => ({ id: e.id, school: e.school, degree: e.degree || '', field: e.field || '', start: e.startDate || '', end: e.endDate || '' })),
+    projects: (profile.projects || []).map((p: any) => ({ id: p.id, name: p.name, summary: p.summary || '', skills: p.skills || [], evidence: p.evidence || [] })),
+    certifications: (profile.certifications || []).map((c: any) => ({ id: c.id, name: c.name, issuer: c.issuer || '', issuedAt: c.issuedAt || '' })),
     experience: (profile.experiences || []).map((e: any) => ({ id: e.id, company: e.company, role: e.role, location: e.location || '', start: e.startDate || '', end: e.endDate || '', bullets: e.bullets || [], evidence: e.evidence || [] })),
   };
 }
@@ -28,7 +30,7 @@ export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = (session.user as any).id as string;
-  const profile = await prisma.careerProfile.findFirst({ where: { userId }, include: { experiences: true, education: true, user: true }, orderBy: { createdAt: 'desc' } });
+  const profile = await prisma.careerProfile.findFirst({ where: { userId }, include: { experiences: true, education: true, projects: true, certifications: true, user: true }, orderBy: { createdAt: 'desc' } });
   if (!profile) return NextResponse.json({ profile: null });
   return NextResponse.json({ profile: toClientProfile(profile) });
 }
@@ -53,6 +55,12 @@ export async function PUT(req: NextRequest) {
   await prisma.educationItem.deleteMany({ where: { profileId: profile.id } });
   const education = Array.isArray(body.education) ? body.education : [];
   if (education.length) await prisma.educationItem.createMany({ data: education.map((e: any) => ({ profileId: profile.id, school: e.school || 'Education', degree: e.degree || null, field: e.field || null, startDate: e.start || null, endDate: e.end || null })) });
-  const fresh = await prisma.careerProfile.findUnique({ where: { id: profile.id }, include: { experiences: true, education: true, user: true } });
+  await prisma.project.deleteMany({ where: { profileId: profile.id } });
+  const projects = Array.isArray(body.projects) ? body.projects : [];
+  if (projects.length) await prisma.project.createMany({ data: projects.map((p: any) => ({ profileId: profile.id, name: p.name || 'Project', summary: p.summary || null, skills: p.skills || [], evidence: p.evidence || [] })) });
+  await prisma.certification.deleteMany({ where: { profileId: profile.id } });
+  const certifications = Array.isArray(body.certifications) ? body.certifications : [];
+  if (certifications.length) await prisma.certification.createMany({ data: certifications.map((c: any) => ({ profileId: profile.id, name: c.name || 'Certification', issuer: c.issuer || null, issuedAt: c.issuedAt || null })) });
+  const fresh = await prisma.careerProfile.findUnique({ where: { id: profile.id }, include: { experiences: true, education: true, projects: true, certifications: true, user: true } });
   return NextResponse.json({ profile: fresh ? toClientProfile(fresh) : null });
 }
