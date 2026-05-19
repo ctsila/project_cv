@@ -1,153 +1,109 @@
 'use client';
+
 import AppShell from '@/components/AppShell';
-import ScoreCard from '@/components/ScoreCard';
 import { demoProfile, sampleJob, samplePack } from '@/lib/storage';
 import { safeJson } from '@/lib/http';
-import { getUiLang, ui, type UiLang } from '@/lib/i18n';
+import { getUiLang, type UiLang } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
-import { useWebLanguage } from '@/components/WebLanguageProvider';
 
 const LANGUAGES = ['English', 'Russian', 'Spanish', 'German'];
 const MARKETS = ['EU', 'US', 'UK', 'Germany', 'Russia/CIS', 'UAE'];
-<<<<<<< HEAD
+const STATUSES = ['Saved', 'Applied', 'HR Screen', 'Interview', 'Offer', 'Rejected'];
+const copy: any = {
+  en: { title: 'Resume Builder', select: 'Select vacancy', generate: 'Generate', source: 'Source vacancy', save: 'Save to tracker', saved: 'Saved to tracker', status: 'Status', notes: 'Notes', reminder: 'Reminder', resume: 'Generated resume', cover: 'Cover letter', noJobs: 'Add a vacancy first.', tracker: 'Application tracker' },
+  ru: { title: 'Конструктор резюме', select: 'Выбрать вакансию', generate: 'Создать', source: 'Исходная вакансия', save: 'Сохранить в трекер', saved: 'Сохранено в трекер', status: 'Статус', notes: 'Заметки', reminder: 'Напоминание', resume: 'Созданное резюме', cover: 'Сопроводительное письмо', noJobs: 'Сначала добавьте вакансию.', tracker: 'Трекер отклика' },
+  es: { title: 'Constructor de CV', select: 'Seleccionar vacante', generate: 'Generar', source: 'Vacante fuente', save: 'Guardar', saved: 'Guardado', status: 'Estado', notes: 'Notas', reminder: 'Recordatorio', resume: 'CV generado', cover: 'Carta', noJobs: 'Añade una vacante primero.', tracker: 'Seguimiento' },
+};
+function fname(s: string) { return (s || 'resume').replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]+/g, '_').slice(0, 80); }
 
 export default function Workspace() {
-	const { language: webLanguage } = useWebLanguage();
-	const [pack, setPack] = useState(samplePack);
-	const [job, setJob] = useState<any>(sampleJob);
-	const [profile, setProfile] = useState<any>(demoProfile);
-	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState('');
-	const [language, setLanguage] = useState('English');
-	const [market, setMarket] = useState('EU');
-	const [coverLetterEnabled, setCoverLetterEnabled] = useState(true);
-	const [coverLetterLanguage, setCoverLetterLanguage] = useState('English');
-	const [jobId, setJobId] = useState<string | null>(null);
-	const ui = {
-		en: { title: 'Compare Workspace', subtitle: 'Job description, match analysis, and truthful tailored output.', source: 'Source vacancy', editor: 'Line-by-line editor', coverLetter: 'Cover letter', generate: 'Generate with AI →', generating: 'Generating...', disabled: 'Cover letter generation is disabled for this vacancy.' },
-		ru: { title: 'Рабочее пространство', subtitle: 'Описание вакансии, анализ совпадения и правдивый адаптированный результат.', source: 'Исходная вакансия', editor: 'Построчный редактор', coverLetter: 'Cover letter', generate: 'Сгенерировать с AI →', generating: 'Генерация...', disabled: 'Генерация cover letter отключена для этой вакансии.' },
-		es: { title: 'Área de trabajo', subtitle: 'Descripción de la vacante, análisis de ajuste y salida adaptada y veraz.', source: 'Vacante fuente', editor: 'Editor línea por línea', coverLetter: 'Cover letter', generate: 'Generar con IA →', generating: 'Generando...', disabled: 'La generación de cover letter está desactivada para esta vacante.' },
-	}[webLanguage];
+  const [lang, setLang] = useState<UiLang>('en');
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [job, setJob] = useState<any>(sampleJob);
+  const [jobId, setJobId] = useState('');
+  const [profile, setProfile] = useState<any>(demoProfile);
+  const [pack, setPack] = useState<any>(samplePack);
+  const [cvLanguage, setCvLanguage] = useState('English');
+  const [coverLanguage, setCoverLanguage] = useState('English');
+  const [market, setMarket] = useState('EU');
+  const [noLies, setNoLies] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [msg, setMsg] = useState('');
+  const [resumeVersionId, setResumeVersionId] = useState<string | null>(null);
+  const [coverLetterVersionId, setCoverLetterVersionId] = useState<string | null>(null);
+  const [status, setStatus] = useState('Applied');
+  const [notes, setNotes] = useState('');
+  const [reminderAt, setReminderAt] = useState('');
+  const [coverEnabled, setCoverEnabled] = useState(true);
+  const t = copy[lang];
 
-	useEffect(() => {
-		let ignore = false;
-		async function load() {
-			const [profileRes, jobRes] = await Promise.all([fetch('/api/profile'), fetch('/api/job-postings/latest')]);
-			const profileData = await profileRes.json();
-			const jobData = await jobRes.json();
-			if (ignore) return;
-			if (profileData.profile) setProfile(profileData.profile);
-			if (jobData.job) {
-				const normalizedLanguage = jobData.job.language === 'en' ? 'English' : jobData.job.language || 'English';
-				setJob(jobData.job.analysis || jobData.job);
-				setLanguage(normalizedLanguage);
-				setMarket(jobData.job.targetMarket || 'EU');
-				setCoverLetterEnabled(jobData.job.analysis?.coverLetterEnabled !== false);
-				setCoverLetterLanguage(jobData.job.analysis?.coverLetterLanguage || normalizedLanguage);
-				setJobId(jobData.job.id);
-			}
-		}
-		load();
-		return () => {
-			ignore = true;
-		};
-	}, []);
+  useEffect(() => {
+    setLang(getUiLang());
+    setNoLies(localStorage.getItem('noLiesMode') !== 'off');
+    const onStorage = () => { setLang(getUiLang()); setNoLies(localStorage.getItem('noLiesMode') !== 'off'); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
-	async function gen() {
-		if (!language || !market) {
-			setError('Select the target market and CV language before generating.');
-			return;
-		}
-		setError('');
-		setBusy(true);
-		const res = await fetch('/api/ai/generate', {
-			method: 'POST',
-			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ profile, job, market, language, jobPostingId: jobId, coverLetterEnabled, coverLetterLanguage }),
-		});
-		const data = await res.json();
-		setPack(data.pack || samplePack);
-		setBusy(false);
-	}
+  useEffect(() => {
+    let ignore = false;
+    async function load() {
+      const [pRes, jRes] = await Promise.all([fetch('/api/profile'), fetch('/api/job-postings')]);
+      const pData = await safeJson(pRes);
+      const jData = await safeJson(jRes);
+      if (ignore) return;
+      if (pData.profile) setProfile(pData.profile);
+      const list = jData.jobs || jData.items || [];
+      setJobs(list);
+      if (list[0]) chooseJob(list[0]);
+    }
+    load();
+    return () => { ignore = true; };
+  }, []);
 
-	return (
-		<AppShell>
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-3xl font-black">{ui.title}</h1>
-					<p className="text-slate-500">{ui.subtitle}</p>
-				</div>
-				<div className="flex items-center gap-3">
-					<select className="input max-w-44 py-2 text-sm" value={language} onChange={(e) => setLanguage(e.target.value)}>
-						{LANGUAGES.map((lang) => (
-							<option key={lang} value={lang}>{lang}</option>
-						))}
-					</select>
-					<select className="input max-w-44 py-2 text-sm" value={coverLetterLanguage} onChange={(e) => setCoverLetterLanguage(e.target.value)}>
-						{LANGUAGES.map((lang) => (
-							<option key={lang} value={lang}>{`Cover letter: ${lang}`}</option>
-						))}
-					</select>
-					<select className="input max-w-44 py-2 text-sm" value={market} onChange={(e) => setMarket(e.target.value)}>
-						{MARKETS.map((m) => (
-							<option key={m} value={m}>{m}</option>
-						))}
-					</select>
-					<label className="flex items-center gap-2 rounded-xl border bg-white px-3 py-2 text-sm">
-						<input type="checkbox" checked={coverLetterEnabled} onChange={(e) => setCoverLetterEnabled(e.target.checked)} />
-						Cover letter
-					</label>
-					<button onClick={gen} className="btn btn-primary">{busy ? ui.generating : ui.generate}</button>
-				</div>
-			</div>
-			{error && <div className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{error}</div>}
-			<div className="mt-6 grid grid-cols-[.95fr_.85fr_1.2fr] gap-5">
-				<section className="card p-5">
-					<b>{ui.source}</b>
-					<h2 className="mt-4 text-xl font-black">{job.title} — {job.company}</h2>
-					<p className="mt-3 text-sm leading-6 text-slate-600">{job.sourceText || 'No vacancy text available yet.'}</p>
-					<div className="mt-5 flex flex-wrap gap-2">
-						{(job.requiredSkills || []).map((k: string) => <span className="pill bg-blue-50 text-blue-700" key={k}>{k}</span>)}
-					</div>
-				</section>
-				<section className="space-y-5">
-					<ScoreCard title="ATS Score" score={pack.atsScore} note="Keyword match, section completeness and formatting." />
-					<ScoreCard title="Locale Fit" score={pack.localeScore} note="Region-specific structure, tone and taboos." />
-					<div className="card p-5">
-						<b>No Lies Status</b>
-						<p className="mt-2 text-sm text-slate-500">Truth risk: <b>{pack.truthRisk}</b></p>
-					</div>
-				</section>
-				<section className="card p-6">
-					<b>Resume — generated version</b>
-					<pre className="mt-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">{pack.resume}</pre>
-				</section>
-			</div>
-			<section className="card mt-6 p-6">
-				<h2 className="text-xl font-black">{ui.editor}</h2>
-				{(pack.suggestions || []).map((s: any, i: number) => (
-					<div className="mt-5 grid grid-cols-4 gap-4 rounded-2xl border p-4 text-sm" key={i}>
-						<p><b>Original</b><br />{s.original}</p>
-						<p><b>Rewrite</b><br />{s.rewrite}</p>
-						<p><b>Why</b><br />{s.why}</p>
-						<p><b>Evidence</b><br />{s.evidence}</p>
-					</div>
-				))}
-			</section>
-			<section className="card mt-6 p-6">
-				<h2 className="text-xl font-black">{ui.coverLetter}</h2>
-				{coverLetterEnabled ? <pre className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{pack.coverLetter}</pre> : <p className="mt-4 text-sm text-slate-500">{ui.disabled}</p>}
-			</section>
-		</AppShell>
-	);
+  function chooseJob(j: any) {
+    setJob(j.analysis || j);
+    setJobId(j.id);
+    const l = j.language === 'ru' ? 'Russian' : j.language === 'es' ? 'Spanish' : j.language === 'de' ? 'German' : 'English';
+    setCvLanguage(l);
+    setCoverLanguage(j.analysis?.coverLetterLanguage || l);
+    setCoverEnabled(j.analysis?.coverLetterEnabled !== false);
+    setMarket(j.targetMarket || 'EU');
+    setMsg('');
+  }
+
+  async function generate() {
+    if (!jobId) { setError(t.noJobs); return; }
+    setBusy(true); setError(''); setMsg('');
+    const res = await fetch('/api/ai/generate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profile, job, market, language: cvLanguage, coverLetterLanguage: coverLanguage, coverLetterEnabled: coverEnabled, jobPostingId: jobId, noLiesMode: noLies }) });
+    const data = await safeJson(res);
+    setBusy(false);
+    if (!res.ok) { setError(data.error || 'Generation failed'); return; }
+    setPack(data.pack || samplePack);
+    setResumeVersionId(data.resumeVersionId || null);
+    setCoverLetterVersionId(data.coverLetterVersionId || null);
+  }
+
+  async function saveApplication() {
+    if (!jobId) { setError(t.noJobs); return; }
+    const res = await fetch('/api/applications', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jobPostingId: jobId, resumeVersionId, coverLetterVersionId, status, notes, reminderAt: reminderAt || null }) });
+    const data = await safeJson(res);
+    if (!res.ok) { setError(data.error || 'Could not save'); return; }
+    setMsg(t.saved);
+  }
+
+  async function download(format: 'pdf' | 'docx' | 'txt', kind: 'resume' | 'coverLetter') {
+    const content = kind === 'resume' ? pack.resume : pack.coverLetter;
+    if (!content) return;
+    const title = `${kind === 'resume' ? 'CV' : 'Cover'} ${job.title || ''}`.trim();
+    const res = await fetch('/api/export', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, content, format }) });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${fname(title)}.${format}`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  return <AppShell><h1 className="text-3xl font-black">{t.title}</h1><div className="mt-5 flex flex-wrap gap-3"><select className="input max-w-72" value={jobId} onChange={(e) => { const found = jobs.find((j) => j.id === e.target.value); if (found) chooseJob(found); }}><option value="">{t.select}</option>{jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}</select><select className="input max-w-44" value={cvLanguage} onChange={(e) => setCvLanguage(e.target.value)}>{LANGUAGES.map((x) => <option key={x}>{x}</option>)}</select><select className="input max-w-44" value={coverLanguage} onChange={(e) => setCoverLanguage(e.target.value)}>{LANGUAGES.map((x) => <option key={x}>CL: {x}</option>)}</select><select className="input max-w-44" value={market} onChange={(e) => setMarket(e.target.value)}>{MARKETS.map((x) => <option key={x}>{x}</option>)}</select><button className="btn btn-primary" onClick={generate}>{busy ? '...' : `${t.generate} →`}</button></div>{error && <div className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{error}</div>}{msg && <div className="mt-4 rounded-xl bg-emerald-50 p-4 font-bold text-emerald-700">{msg} <a href="/tracker" className="underline">Tracker →</a></div>}<div className="mt-6 grid grid-cols-[1fr_1fr] gap-5"><section className="card p-5"><b>{t.source}</b><h2 className="mt-3 text-xl font-black">{job.title} — {job.company}</h2><p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">{job.sourceText || ''}</p></section><section className="card p-5"><b>{t.tracker}</b><p className="mt-2 text-sm text-slate-500">{noLies ? 'No Lies ON' : 'No Lies OFF'} · {pack.truthRisk || 'n/a'}</p><select className="input mt-3" value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((x) => <option key={x}>{x}</option>)}</select><input className="input mt-3" type="date" value={reminderAt} onChange={(e) => setReminderAt(e.target.value)} /><textarea className="input mt-3 min-h-24" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.notes} /><button className="btn btn-primary mt-3" onClick={saveApplication}>{t.save}</button></section></div><section className="card mt-6 p-6"><div className="flex justify-between"><b>{t.resume}</b><div className="flex gap-2"><button className="pill bg-slate-100" onClick={() => download('pdf', 'resume')}>PDF</button><button className="pill bg-slate-100" onClick={() => download('docx', 'resume')}>DOCX</button><button className="pill bg-slate-100" onClick={() => download('txt', 'resume')}>TXT</button></div></div><pre className="mt-4 whitespace-pre-wrap text-sm leading-6">{pack.resume}</pre></section><section className="card mt-6 p-6"><div className="flex justify-between"><label className="flex gap-2 font-black"><input type="checkbox" checked={coverEnabled} onChange={(e) => setCoverEnabled(e.target.checked)} />{t.cover}</label><div className="flex gap-2"><button className="pill bg-slate-100" onClick={() => download('pdf', 'coverLetter')}>PDF</button><button className="pill bg-slate-100" onClick={() => download('docx', 'coverLetter')}>DOCX</button><button className="pill bg-slate-100" onClick={() => download('txt', 'coverLetter')}>TXT</button></div></div>{coverEnabled ? <pre className="mt-4 whitespace-pre-wrap text-sm leading-6">{pack.coverLetter}</pre> : null}</section></AppShell>;
 }
-=======
-const STATUS = ['Saved','Applied','HR Screen','Interview','Offer','Rejected'];
-const labels:any={en:{title:'Resume Builder',desc:'Select a parsed vacancy, generate documents, export them, and save the vacancy to the application tracker.',source:'Source vacancy',generate:'Generate with AI',generating:'Generating...',select:'Select vacancy',resume:'Resume — generated version',editor:'Line-by-line editor',cover:'Cover letter',truth:'Truth risk',noVacancies:'No parsed vacancies yet. Add one in Vacancies.',download:'Download',pdf:'PDF',docx:'DOCX',txt:'TXT',tracker:'Application tracker',trackerHelp:'After you apply externally, save the vacancy here and choose its current status.',saveTracker:'Save to tracker',savingTracker:'Saving...',savedTracker:'Application saved to tracker.',status:'Status',notes:'Notes',reminder:'Reminder date'},ru:{title:'Конструктор резюме',desc:'Выберите разобранную вакансию, создайте документы, скачайте их и сохраните вакансию в трекер откликов.',source:'Исходная вакансия',generate:'Создать через AI',generating:'Генерация...',select:'Выбрать вакансию',resume:'Созданное резюме',editor:'Построчный редактор',cover:'Сопроводительное письмо',truth:'Риск недостоверности',noVacancies:'Пока нет разобранных вакансий. Добавьте вакансию в разделе Вакансии.',download:'Скачать',pdf:'PDF',docx:'DOCX',txt:'TXT',tracker:'Трекер отклика',trackerHelp:'После внешнего отклика сохраните вакансию здесь и выберите текущий статус.',saveTracker:'Сохранить в трекер',savingTracker:'Сохранение...',savedTracker:'Отклик сохранен в трекер.',status:'Статус',notes:'Заметки',reminder:'Дата напоминания'},es:{title:'Constructor de CV',desc:'Selecciona una vacante, genera documentos, expórtalos y guarda la candidatura en el seguimiento.',source:'Vacante fuente',generate:'Generar con AI',generating:'Generando...',select:'Seleccionar vacante',resume:'CV generado',editor:'Editor línea por línea',cover:'Carta de presentación',truth:'Riesgo de veracidad',noVacancies:'Aún no hay vacantes analizadas.',download:'Descargar',pdf:'PDF',docx:'DOCX',txt:'TXT',tracker:'Seguimiento',trackerHelp:'Después de postularte externamente, guarda la vacante aquí y elige el estado.',saveTracker:'Guardar en seguimiento',savingTracker:'Guardando...',savedTracker:'Candidatura guardada.',status:'Estado',notes:'Notas',reminder:'Recordatorio'}};
-function safeFileName(input:string){return (input||'resume').replace(/[^a-zA-Z0-9а-яА-ЯёЁ._-]+/g,'_').slice(0,80)}
-export default function Workspace(){const [pack,setPack]=useState<any>(samplePack);const [jobs,setJobs]=useState<any[]>([]);const [job,setJob]=useState<any>(sampleJob);const [profile,setProfile]=useState<any>(demoProfile);const [busy,setBusy]=useState(false);const [exporting,setExporting]=useState('');const [savingApp,setSavingApp]=useState(false);const [trackerMsg,setTrackerMsg]=useState('');const [error,setError]=useState('');const [language,setLanguage]=useState('English');const [market,setMarket]=useState('EU');const [jobId,setJobId]=useState<string|null>(null);const [resumeVersionId,setResumeVersionId]=useState<string|null>(null);const [coverLetterVersionId,setCoverLetterVersionId]=useState<string|null>(null);const [appStatus,setAppStatus]=useState('Applied');const [notes,setNotes]=useState('');const [reminderAt,setReminderAt]=useState('');const [uiLang,setUiLangState]=useState<UiLang>('en');const [noLies,setNoLies]=useState(true);const t=labels[uiLang];useEffect(()=>{setUiLangState(getUiLang());setNoLies(localStorage.getItem('noLiesMode')!=='off');function onStorage(){setUiLangState(getUiLang());setNoLies(localStorage.getItem('noLiesMode')!=='off')}window.addEventListener('storage',onStorage);return()=>window.removeEventListener('storage',onStorage)},[]);useEffect(()=>{let ignore=false;async function load(){const [profileRes,jobsRes]=await Promise.all([fetch('/api/profile'),fetch('/api/job-postings')]);const profileData=await safeJson(profileRes);const jobsData=await safeJson(jobsRes);if(ignore)return;if(profileData.profile)setProfile(profileData.profile);const list=jobsData.items||jobsData.jobs||[];setJobs(list);if(list[0])selectJob(list[0]);}load();return()=>{ignore=true}},[]);function selectJob(j:any){setJob(j.analysis||j);setJobId(j.id);setResumeVersionId(null);setCoverLetterVersionId(null);setTrackerMsg('');const lang=j.language==='ru'?'Russian':j.language==='es'?'Spanish':j.language==='de'?'German':j.language==='en'?'English':j.language||'English';setLanguage(lang);setMarket(j.targetMarket||'EU');}
-async function gen(){if(!jobId){setError(t.noVacancies);return}setError('');setTrackerMsg('');setBusy(true);const res=await fetch('/api/ai/generate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profile,job,market,language,jobPostingId:jobId,noLiesMode:noLies})});const data=await safeJson(res);setBusy(false);if(!res.ok){setError(data.error||'Generation failed.');return}setPack(data.pack||samplePack);setResumeVersionId(data.resumeVersionId||null);setCoverLetterVersionId(data.coverLetterVersionId||null)}
-async function saveApplication(){if(!jobId){setError(t.noVacancies);return}setSavingApp(true);setError('');setTrackerMsg('');try{const res=await fetch('/api/applications',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jobPostingId:jobId,resumeVersionId,coverLetterVersionId,status:appStatus,notes,reminderAt:reminderAt||null,title:job.title})});const data=await safeJson(res);if(!res.ok){setError(data.error||'Could not save application.');return}setTrackerMsg(t.savedTracker)}finally{setSavingApp(false)}}
-async function downloadDoc(format:'pdf'|'docx'|'txt',kind:'resume'|'coverLetter'){const content=kind==='resume'?pack.resume:pack.coverLetter;if(!content){setError('Nothing to export yet. Generate a document first.');return}setExporting(`${kind}-${format}`);setError('');try{const title=`${kind==='resume'?'CV':'Cover Letter'} ${job.title||''}`.trim();const res=await fetch('/api/export',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({title,content,format})});if(!res.ok){const data=await safeJson(res);setError(data.error||'Export failed.');return}const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${safeFileName(title)}.${format}`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}finally{setExporting('')}}
-return <AppShell><div className="flex items-center justify-between"><div><h1 className="text-3xl font-black">{t.title}</h1><p className="text-slate-500">{t.desc}</p></div><div className="flex items-center gap-3"><select className="input max-w-64 py-2 text-sm" value={jobId||''} onChange={e=>{const found=jobs.find(j=>j.id===e.target.value);if(found)selectJob(found)}}><option value="">{t.select}</option>{jobs.map(j=><option key={j.id} value={j.id}>{j.title} · {new Date(j.createdAt).toLocaleDateString()}</option>)}</select><select className="input max-w-44 py-2 text-sm" value={language} onChange={e=>setLanguage(e.target.value)}>{LANGUAGES.map(l=><option key={l} value={l}>{l}</option>)}</select><select className="input max-w-44 py-2 text-sm" value={market} onChange={e=>setMarket(e.target.value)}>{MARKETS.map(m=><option key={m} value={m}>{m}</option>)}</select><button onClick={gen} className="btn btn-primary">{busy?t.generating:`${t.generate} →`}</button></div></div>{error&&<div className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{error}</div>}{trackerMsg&&<div className="mt-4 rounded-xl bg-emerald-50 p-4 font-bold text-emerald-700">{trackerMsg} <a href="/tracker" className="underline">Tracker →</a></div>}<div className="mt-6 grid grid-cols-[.95fr_.85fr_1.2fr] gap-5"><section className="card p-5"><b>{t.source}</b><h2 className="mt-4 text-xl font-black">{job.title} — {job.company}</h2><p className="mt-3 text-sm leading-6 text-slate-600">{job.sourceText||'No vacancy text available yet.'}</p><div className="mt-5 flex flex-wrap gap-2">{(job.requiredSkills||[]).map((k:string)=><span className="pill bg-blue-50 text-blue-700" key={k}>{k}</span>)}</div></section><section className="space-y-5"><ScoreCard title="ATS Score" score={pack.atsScore||0} note="Keyword match, section completeness and formatting."/><ScoreCard title="Locale Fit" score={pack.localeScore||0} note="Region-specific structure, tone and taboos."/><div className="card p-5"><b>{ui[uiLang].noLies}</b><p className="mt-2 text-sm text-slate-500">{t.truth}: <b>{pack.truthRisk}</b></p><p className="mt-2 text-sm text-slate-500">{noLies?ui[uiLang].noLiesOn:ui[uiLang].noLiesOff}</p></div><div className="card p-5"><b>{t.tracker}</b><p className="mt-2 text-sm text-slate-500">{t.trackerHelp}</p><label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-400">{t.status}</label><select className="input mt-2" value={appStatus} onChange={e=>setAppStatus(e.target.value)}>{STATUS.map(s=><option key={s} value={s}>{s}</option>)}</select><label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-400">{t.reminder}</label><input className="input mt-2" type="date" value={reminderAt} onChange={e=>setReminderAt(e.target.value)}/><label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-400">{t.notes}</label><textarea className="input mt-2 min-h-20" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Applied via company site / HH / LinkedIn..."/><button onClick={saveApplication} className="btn btn-primary mt-4 w-full" disabled={savingApp||!jobId}>{savingApp?t.savingTracker:`${t.saveTracker} →`}</button></div></section><section className="card p-6"><div className="flex items-center justify-between gap-3"><b>{t.resume}</b><div className="flex gap-2"><button onClick={()=>downloadDoc('pdf','resume')} className="pill bg-slate-100 text-slate-700" disabled={!!exporting}>{exporting==='resume-pdf'?'...':t.pdf}</button><button onClick={()=>downloadDoc('docx','resume')} className="pill bg-slate-100 text-slate-700" disabled={!!exporting}>{exporting==='resume-docx'?'...':t.docx}</button><button onClick={()=>downloadDoc('txt','resume')} className="pill bg-slate-100 text-slate-700" disabled={!!exporting}>{t.txt}</button></div></div><pre className="mt-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">{pack.resume}</pre></section></div><section className="card mt-6 p-6"><h2 className="text-xl font-black">{t.editor}</h2>{(pack.suggestions||[]).map((s:any,i:number)=><div className="mt-5 grid grid-cols-4 gap-4 rounded-2xl border p-4 text-sm" key={i}><p><b>Original</b><br/>{s.original}</p><p><b>Rewrite</b><br/>{s.rewrite}</p><p><b>Why</b><br/>{s.why}</p><p><b>Evidence</b><br/>{s.evidence}</p></div>)}</section><section className="card mt-6 p-6"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-black">{t.cover}</h2><div className="flex gap-2"><button onClick={()=>downloadDoc('pdf','coverLetter')} className="pill bg-slate-100 text-slate-700" disabled={!!exporting}>{exporting==='coverLetter-pdf'?'...':t.pdf}</button><button onClick={()=>downloadDoc('docx','coverLetter')} className="pill bg-slate-100 text-slate-700" disabled={!!exporting}>{exporting==='coverLetter-docx'?'...':t.docx}</button><button onClick={()=>downloadDoc('txt','coverLetter')} className="pill bg-slate-100 text-slate-700" disabled={!!exporting}>{t.txt}</button></div></div><pre className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{pack.coverLetter}</pre></section></AppShell>}
->>>>>>> 475a928ccaa35cdc12da7906e7db53c29a96b8a9
