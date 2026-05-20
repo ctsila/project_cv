@@ -99,6 +99,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new Event('storage'));
   }
 
+  async function handleLogout() {
+    try {
+      const result = await signOut({ redirect: false, callbackUrl: '/' });
+      router.replace(result?.url || '/');
+    } catch {
+      window.location.href = '/';
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f8fc]">
       <aside className="fixed left-0 top-0 h-full w-60 border-r bg-white">
@@ -135,7 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/profile" className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-indigo-600 font-bold text-white" aria-label="Open profile">
             {user?.image ? <img src={user.image} alt={user?.name || 'Profile'} className="h-full w-full object-cover" /> : initials}
           </Link>
-          <button onClick={() => signOut({ callbackUrl: '/' })} className="pill bg-slate-100 text-slate-700">Log out</button>
+          <button onClick={handleLogout} className="pill bg-slate-100 text-slate-700">Log out</button>
         </header>
         <div className="p-8">{children}</div>
       </main>
