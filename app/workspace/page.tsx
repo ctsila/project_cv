@@ -50,9 +50,17 @@ export default function Workspace() {
     let ignore = false;
     async function load() {
       const [pRes, jRes] = await Promise.all([fetch('/api/profile'), fetch('/api/job-postings')]);
+      if (pRes.status === 401 || jRes.status === 401) {
+        window.location.href = '/';
+        return;
+      }
       const pData = await safeJson(pRes);
       const jData = await safeJson(jRes);
       if (ignore) return;
+      if (!pRes.ok || !jRes.ok) {
+        setError(pData.error || jData.error || 'Could not load workspace data');
+        return;
+      }
       if (pData.profile) setProfile(pData.profile);
       const list = jData.jobs || jData.items || [];
       setJobs(list);
@@ -88,6 +96,10 @@ export default function Workspace() {
   async function saveApplication() {
     if (!jobId) { setError(t.noJobs); return; }
     const res = await fetch('/api/applications', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jobPostingId: jobId, resumeVersionId, coverLetterVersionId, status, notes, reminderAt: reminderAt || null }) });
+    if (res.status === 401) {
+      window.location.href = '/';
+      return;
+    }
     const data = await safeJson(res);
     if (!res.ok) { setError(data.error || 'Could not save'); return; }
     setMsg(t.saved);

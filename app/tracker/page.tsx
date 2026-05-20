@@ -44,7 +44,12 @@ export default function Tracker() {
 
   async function load() {
     const res = await fetch('/api/applications');
+    if (res.status === 401) {
+      window.location.href = '/';
+      return;
+    }
     const data = await safeJson(res);
+    if (!res.ok) { setError(data.error || 'Could not load tracker.'); return; }
     setItems(data.items || []);
   }
   useEffect(() => { setLang(getUiLang()); load(); }, []);

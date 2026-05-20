@@ -1,27 +1,56 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { getUiLang, setUiLang, ui, type UiLang } from '@/lib/i18n';
+import { signOut, useSession } from 'next-auth/react';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [lang, setLang] = useState<UiLang>('en');
   const [noLies, setNoLies] = useState(true);
-  const [user, setUser] = useState<{ name?: string | null; image?: string | null } | null>(null);
+  const [user, setUser] = useState<{ name?: string | null; image?: string | null; email?: string | null } | null>(null);
 
   useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/');
+      return;
+    }
+    if (status === 'authenticated' && session?.user) {
+      setUser((current) => ({
+        ...current,
+        name: session.user.name || current?.name || 'User',
+        image: session.user.image || current?.image || null,
+        email: session.user.email || current?.email || null,
+      }));
+    }
+  }, [router, session?.user, status]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
     setLang(getUiLang());
     setNoLies(localStorage.getItem('noLiesMode') !== 'off');
     let ignore = false;
     async function loadProfile() {
       try {
         const res = await fetch('/api/profile');
+        if (res.status === 401) {
+          router.replace('/');
+          return;
+        }
         const data = await res.json();
-        if (!ignore) setUser({ name: data.profile?.name || data.profile?.email || 'User', image: data.profile?.photoDataUrl || null });
+        if (!ignore) {
+          setUser({
+            name: data.profile?.name || data.profile?.email || session?.user?.name || 'User',
+            image: data.profile?.photoDataUrl || session?.user?.image || null,
+            email: data.profile?.email || session?.user?.email || null,
+          });
+        }
       } catch {
-        if (!ignore) setUser({ name: 'User', image: null });
+        if (!ignore) setUser({ name: session?.user?.name || 'User', image: session?.user?.image || null, email: session?.user?.email || null });
       }
     }
     loadProfile();
@@ -40,7 +69,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('account-updated', onAccountUpdate as EventListener);
     };
-  }, []);
+  }, [router, session?.user?.email, session?.user?.image, session?.user?.name, status]);
 
   const t = ui[lang];
   const nav = [
@@ -91,6 +120,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <main className="ml-60">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-3 border-b bg-white/90 px-6 backdrop-blur">
+          <div className="mr-2 text-right text-xs leading-4 text-slate-500">
+            <div className="font-bold text-slate-700">{user?.name || 'User'}</div>
+            <div>{user?.email || ''}</div>
+          </div>
           <select className="input max-w-36 py-2 text-sm" value={lang} onChange={(e) => changeLang(e.target.value as UiLang)}>
             <option value="en">Web: EN</option>
             <option value="ru">Web: RU</option>
@@ -102,6 +135,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/profile" className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-indigo-600 font-bold text-white" aria-label="Open profile">
             {user?.image ? <img src={user.image} alt={user?.name || 'Profile'} className="h-full w-full object-cover" /> : initials}
           </Link>
+          <button onClick={() => signOut({ callbackUrl: '/' })} className="pill bg-slate-100 text-slate-700">Log out</button>
         </header>
         <div className="p-8">{children}</div>
       </main>

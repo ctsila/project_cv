@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const userId = (session.user as any).id as string;
-  const { url, text, language, targetMarket, coverLetterEnabled, coverLetterLanguage, interviewPrep } = await req.json();
+  const { title, url, text, language, targetMarket, coverLetterEnabled, coverLetterLanguage, interviewPrep } = await req.json();
   const resolvedUrl = String(url || '').trim();
+  const customTitle = String(title || '').trim();
   const pastedText = String(text || '').trim();
   let source = pastedText;
 
@@ -114,11 +115,12 @@ export async function POST(req: NextRequest) {
     coverLetterLanguage: coverLetterLanguage || language || 'English',
     interviewPrep: interviewPrep !== false,
   };
+  const savedTitle = customTitle || analysis.title;
 
   const job = await prisma.jobPosting.create({
     data: {
       userId,
-      title: analysis.title,
+      title: savedTitle,
       sourceUrl: resolvedUrl || null,
       sourceText: source,
       language: langCode(language || 'English'),
@@ -132,11 +134,11 @@ export async function POST(req: NextRequest) {
     data: {
       userId,
       type: 'vacancy',
-      title: analysis.title,
+      title: savedTitle,
       details: analysis.company,
       payload: { jobPostingId: job.id, analysis },
     },
   });
 
-  return NextResponse.json({ analysis, job });
+  return NextResponse.json({ analysis: { ...analysis, title: savedTitle }, job });
 }

@@ -8,12 +8,13 @@ import { useEffect, useState } from 'react';
 const LANGUAGES = ['English', 'Russian', 'Spanish', 'German'];
 const MARKETS = ['EU', 'US', 'UK', 'Germany', 'Russia/CIS', 'UAE'];
 const copy: any = {
-  en: { title: 'Vacancies', desc: 'Paste a vacancy text or supported public URL. The app validates it, extracts requirements and saves it for comparison.', url: 'Vacancy URL', text: 'Vacancy text', analyze: 'Analyze vacancy', checking: 'Checking and parsing...', success: 'Vacancy parsed. Open Compare Workspace.', interview: 'Generate interview prep', cover: 'Generate cover letter', coverLang: 'Cover letter language' },
-  ru: { title: 'Вакансии', desc: 'Вставьте текст вакансии или поддерживаемую публичную ссылку. Приложение проверит вакансию, извлечет требования и сохранит ее для сравнения.', url: 'Ссылка на вакансию', text: 'Текст вакансии', analyze: 'Разобрать вакансию', checking: 'Проверка и разбор...', success: 'Вакансия разобрана. Открыть сравнение.', interview: 'Создать подготовку к интервью', cover: 'Создать сопроводительное письмо', coverLang: 'Язык сопроводительного письма' },
-  es: { title: 'Vacantes', desc: 'Pega el texto de la vacante o una URL pública compatible. La app valida y extrae requisitos.', url: 'URL de vacante', text: 'Texto de vacante', analyze: 'Analizar vacante', checking: 'Analizando...', success: 'Vacante analizada. Abrir comparación.', interview: 'Generar preparación de entrevista', cover: 'Generar carta de presentación', coverLang: 'Idioma de carta' },
+  en: { title: 'Vacancies', desc: 'Paste a vacancy text or supported public URL. The app validates it, extracts requirements and saves it for comparison.', name: 'Vacancy name', namePlaceholder: 'e.g. SOC Analyst L1 - GNVIC', url: 'Vacancy URL', text: 'Vacancy text', analyze: 'Analyze vacancy', checking: 'Checking and parsing...', success: 'Vacancy parsed. Open Compare Workspace.', interview: 'Generate interview prep', cover: 'Generate cover letter', coverLang: 'Cover letter language' },
+  ru: { title: 'Вакансии', desc: 'Вставьте текст вакансии или поддерживаемую публичную ссылку. Приложение проверит вакансию, извлечет требования и сохранит ее для сравнения.', name: 'Название вакансии', namePlaceholder: 'например: SOC аналитик L1 - GNVIC', url: 'Ссылка на вакансию', text: 'Текст вакансии', analyze: 'Разобрать вакансию', checking: 'Проверка и разбор...', success: 'Вакансия разобрана. Открыть сравнение.', interview: 'Создать подготовку к интервью', cover: 'Создать сопроводительное письмо', coverLang: 'Язык сопроводительного письма' },
+  es: { title: 'Vacantes', desc: 'Pega el texto de la vacante o una URL pública compatible. La app valida y extrae requisitos.', name: 'Nombre de vacante', namePlaceholder: 'p. ej. Analista SOC L1 - GNVIC', url: 'URL de vacante', text: 'Texto de vacante', analyze: 'Analizar vacante', checking: 'Analizando...', success: 'Vacante analizada. Abrir comparación.', interview: 'Generar preparación de entrevista', cover: 'Generar carta de presentación', coverLang: 'Idioma de carta' },
 };
 
 export default function VacancyPage() {
+  const [vacancyName, setVacancyName] = useState('');
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,7 +33,7 @@ export default function VacancyPage() {
     setBusy(true);
     setMsg('');
     setErr('');
-    const res = await fetch('/api/vacancy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: url.trim(), text, language: cvLanguage, targetMarket, coverLetterEnabled, coverLetterLanguage, interviewPrep }) });
+    const res = await fetch('/api/vacancy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: vacancyName.trim(), url: url.trim(), text, language: cvLanguage, targetMarket, coverLetterEnabled, coverLetterLanguage, interviewPrep }) });
     const data = await safeJson(res);
     setBusy(false);
     if (!res.ok) { setErr(data.error || 'Could not analyze vacancy. Paste a real job description.'); return; }
@@ -44,6 +45,8 @@ export default function VacancyPage() {
       <h1 className="text-3xl font-black">{t.title}</h1>
       <p className="mt-1 text-slate-500">{t.desc}</p>
       <div className="card mt-8 p-6">
+        <label className="text-xs font-bold uppercase tracking-widest text-slate-400">{t.name}</label>
+        <input className="input mt-2" value={vacancyName} onChange={(e) => setVacancyName(e.target.value)} placeholder={t.namePlaceholder} />
         <label className="text-xs font-bold uppercase tracking-widest text-slate-400">{t.url}</label>
         <input className="input mt-2" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://hh.ru/vacancy/..." />
         <label className="mt-5 block text-xs font-bold uppercase tracking-widest text-slate-400">{t.text}</label>
