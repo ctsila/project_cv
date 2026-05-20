@@ -4,7 +4,6 @@ A Next.js SaaS-style application for vacancy-based CV/resume and cover-letter ge
 
 ## Current feature set
 
-<<<<<<< HEAD
 - Next.js + TypeScript + Tailwind web app.
 - Landing, sign-in UI, dashboard, career profile vault, vacancy input, compare workspace, generation history, tracker.
 - OpenAI-powered generation through `/api/ai/generate` when `OPENAI_API_KEY` is configured.
@@ -14,7 +13,6 @@ A Next.js SaaS-style application for vacancy-based CV/resume and cover-letter ge
 - LinkedIn URL field with fallback to pasted text. LinkedIn frequently blocks automated reads, so production deployment should use official partner/API access or user-provided text/export.
 - Auth.js/NextAuth provider configuration for Google, LinkedIn, Yandex, and hh.ru OAuth.
 - Database-backed profile, vacancy, and history data for authenticated users.
-=======
 - Email/password registration and sign-in only.
 - Password reset request flow through configured SMTP.
 - PostgreSQL-backed user profile, CV sources, parsed vacancies, generated resumes, cover letters, applications, and history.
@@ -30,7 +28,6 @@ A Next.js SaaS-style application for vacancy-based CV/resume and cover-letter ge
 - Application tracker with Kanban, list, and calendar views.
 - PDF, DOCX, and TXT export API.
 - UI language support for English, Russian, and Spanish in the main application shell and core screens.
->>>>>>> 475a928ccaa35cdc12da7906e7db53c29a96b8a9
 
 ## Removed / intentionally disabled
 
