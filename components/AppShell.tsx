@@ -22,9 +22,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (status === 'authenticated' && session?.user) {
       setUser((current) => ({
         ...current,
-        name: session.user.name || current?.name || 'User',
-        image: session.user.image || current?.image || null,
-        email: session.user.email || current?.email || null,
+        name: session?.user?.name || current?.name || 'User',
+        image: session?.user?.image || current?.image || null,
+        email: session?.user?.email || current?.email || null,
       }));
     }
   }, [router, session?.user, status]);

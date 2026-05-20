@@ -37,22 +37,46 @@ async function extractPdfWithPdfJs(buffer: Buffer) {
   return pages.join('\n').trim();
 }
 
+function normalizeExtractedPdfText(text: string) {
+  return text
+    .replace(/\u0000/g, '')
+    .replace(/-\n/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function extractPdfWithBinaryFallback(buffer: Buffer) {
+  // Last-resort fallback: recover printable runs from malformed PDFs where normal parsers fail.
+  const latin = buffer.toString('latin1');
+  const utf16 = buffer.toString('utf16le');
+  const collectRuns = (source: string) => {
+    const runs = source.match(/[\p{L}\p{N}@._%+\-:\/(),]{4,}(?:[ \t]+[\p{L}\p{N}@._%+\-:\/(),]{2,})*/gu) || [];
+    return runs.filter((line) => /[A-Za-zА-Яа-я0-9]/.test(line));
+  };
+  const lines = [...collectRuns(latin), ...collectRuns(utf16)].slice(0, 6000);
+  return normalizeExtractedPdfText(lines.join('\n'));
+}
+
 async function extractPdfText(buffer: Buffer) {
   const errors: string[] = [];
   try {
     const text = await extractPdfWithPdfParse(buffer);
-    if (text.length > 20) return text;
+    if (text.length > 20) return normalizeExtractedPdfText(text);
     errors.push('pdf-parse returned empty text');
   } catch (error) {
     errors.push(`pdf-parse: ${error instanceof Error ? error.message : String(error)}`);
   }
   try {
     const text = await extractPdfWithPdfJs(buffer);
-    if (text.length > 20) return text;
+    if (text.length > 20) return normalizeExtractedPdfText(text);
     errors.push('pdfjs returned empty text');
   } catch (error) {
     errors.push(`pdfjs: ${error instanceof Error ? error.message : String(error)}`);
   }
+  const fallback = extractPdfWithBinaryFallback(buffer);
+  if (fallback.length > 80) return fallback;
   throw new Error(`Could not extract readable text from this PDF. It may be scanned/image-based, protected, or malformed. ${errors.join(' | ')}`);
 }
 

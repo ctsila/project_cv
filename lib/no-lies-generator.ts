@@ -20,8 +20,16 @@ function profileEducation(profile: AnyObj) { return profile.education || profile
 function dateRange(e: AnyObj, t: AnyObj) { const start = e.start || e.startDate || ''; const end = e.end || e.endDate || t.current; return [start, end].filter(Boolean).join(' — '); }
 function relevantBullets(exp: AnyObj, jobKeywords: string[]) { const bullets = arr(exp.bullets); const matched = bullets.filter((b) => jobKeywords.some((k) => includesSkill(b, k))); return (matched.length ? matched : bullets).slice(0, 4); }
 
-export function buildNoLiesPack(profile: AnyObj, job: AnyObj, language = 'English', market = 'EU') {
-  const t = labels(language);
+export function buildNoLiesPack(
+  profile: AnyObj,
+  job: AnyObj,
+  resumeLanguage = 'English',
+  market = 'EU',
+  coverLetterLanguage?: string,
+) {
+  const t = labels(resumeLanguage);
+  const coverLang = coverLetterLanguage || resumeLanguage;
+  const c = labels(coverLang);
   const profileText = collectProfileText(profile);
   const jobKeywords = arr([...(job.requiredSkills || []), ...(job.preferredSkills || []), ...(job.keywords || [])]).length ? arr([...(job.requiredSkills || []), ...(job.preferredSkills || []), ...(job.keywords || [])]) : arr(job.sourceText).slice(0, 20);
   const profileSkills = arr(profile.skills);
@@ -33,9 +41,9 @@ export function buildNoLiesPack(profile: AnyObj, job: AnyObj, language = 'Englis
   const name = profile.name || 'Candidate';
   const title = profile.title || exps[0]?.role || t.role;
   const contact = [profile.location, profile.email, ...(profile.links || [])].filter(Boolean).join(' · ');
-  const summary = language.toLowerCase().includes('russian')
+  const summary = resumeLanguage.toLowerCase().includes('russian')
     ? `${title} с подтвержденным опытом, релевантным вакансии ${job.title || ''}. Акцент: ${matched.slice(0, 5).join(', ') || 'релевантные обязанности и навыки'}. Неподтвержденные требования не добавлены.`
-    : language.toLowerCase().includes('spanish')
+    : resumeLanguage.toLowerCase().includes('spanish')
       ? `${title} con experiencia verificada relevante para ${job.title || 'la vacante'}. Enfoque: ${matched.slice(0, 5).join(', ') || 'responsabilidades y habilidades relevantes'}. No se añaden afirmaciones sin evidencia.`
       : `${title} with verified experience relevant to ${job.title || 'the target role'}. Focus areas: ${matched.slice(0, 5).join(', ') || 'relevant responsibilities and skills'}. Unsupported claims were not added.`;
   const expText = exps.slice(0, 4).map((e: AnyObj) => {
@@ -45,9 +53,25 @@ export function buildNoLiesPack(profile: AnyObj, job: AnyObj, language = 'Englis
   const eduText = profileEducation(profile).slice(0, 3).map((e: AnyObj) => [e.degree, e.field, e.school].filter(Boolean).join(' — ')).filter(Boolean).join('\n');
   const gapText = missing.length ? missing.map((x) => `• ${x}`).join('\n') : '• None identified from the parsed vacancy and profile.';
   const resume = `${name}\n${title}\n${contact}\n\n${t.summary}\n${summary}\n\n${t.skills}\n${uniqueSkills.join(' · ')}\n\n${t.experience}\n${expText || 'No experience facts were provided yet.'}\n\n${eduText ? `${t.education}\n${eduText}\n\n` : ''}${t.gaps}\n${gapText}`;
-  const coverLetter = `${t.coverGreeting}\n\n${t.coverIntro}\n\n${summary}\n\n${t.coverEvidence}\n\n${t.coverClose}\n\n${t.regards},\n${name}`;
-  const suggestions = exps.slice(0, 2).flatMap((e: AnyObj) => relevantBullets(e, jobKeywords).slice(0, 2).map((b) => ({ original: b, rewrite: b, why: language.toLowerCase().includes('russian') ? 'Факт сохранен без усиления, потому что он уже подтвержден профилем и связан с вакансией.' : 'Kept factual and role-relevant without adding unsupported impact.', evidence: arr(e.evidence)[0] || 'Profile / uploaded CV', risk: 'low' })));
+  const coverLetterSummary = coverLang.toLowerCase().includes('russian')
+    ? `${title} с подтвержденным опытом, релевантным вакансии ${job.title || ''}.`
+    : coverLang.toLowerCase().includes('spanish')
+      ? `${title} con experiencia verificada relevante para ${job.title || 'la vacante'}.`
+      : `${title} with verified experience relevant to ${job.title || 'the target role'}.`;
+  const coverLetter = `${c.coverGreeting}\n\n${c.coverIntro}\n\n${coverLetterSummary}\n\n${c.coverEvidence}\n\n${c.coverClose}\n\n${c.regards},\n${name}`;
+  const suggestions = exps.slice(0, 2).flatMap((e: AnyObj) => relevantBullets(e, jobKeywords).slice(0, 2).map((b) => ({ original: b, rewrite: b, why: resumeLanguage.toLowerCase().includes('russian') ? 'Факт сохранен без усиления, потому что он уже подтвержден профилем и связан с вакансией.' : 'Kept factual and role-relevant without adding unsupported impact.', evidence: arr(e.evidence)[0] || 'Profile / uploaded CV', risk: 'low' })));
   const atsScore = Math.min(95, Math.max(45, Math.round((matched.length / Math.max(1, jobKeywords.length)) * 70 + uniqueSkills.length)));
-  const localeScore = market === 'Russia/CIS' && language === 'Russian' ? 92 : 86;
-  return { atsScore, localeScore, truthRisk: missing.length > matched.length ? 'medium' : 'low', matched, missing, weakEvidence: missing, resume, coverLetter, interviewQuestions: matched.slice(0, 6).map((m) => language.toLowerCase().includes('russian') ? `Расскажите о подтвержденном опыте с ${m}.` : `Describe your verified experience with ${m}.`), suggestions };
+  const localeScore = market === 'Russia/CIS' && resumeLanguage === 'Russian' ? 92 : 86;
+  return {
+    atsScore,
+    localeScore,
+    truthRisk: missing.length > matched.length ? 'medium' : 'low',
+    matched,
+    missing,
+    weakEvidence: missing,
+    resume,
+    coverLetter,
+    interviewQuestions: matched.slice(0, 6).map((m) => resumeLanguage.toLowerCase().includes('russian') ? `Расскажите о подтвержденном опыте с ${m}.` : `Describe your verified experience with ${m}.`),
+    suggestions,
+  };
 }
