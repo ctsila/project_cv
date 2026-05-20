@@ -74,9 +74,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const t = ui[lang];
   const nav = [
     ['/dashboard', t.dashboard],
-    ['/workspace', t.compare],
     ['/profile', t.profile],
     ['/vacancy', t.vacancies],
+    ['/workspace', t.compare],
     ['/history', t.history],
     ['/tracker', t.tracker],
   ];
