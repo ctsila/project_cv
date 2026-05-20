@@ -107,15 +107,40 @@ export default function Workspace() {
 
   async function download(format: 'pdf' | 'docx' | 'txt', kind: 'resume' | 'coverLetter') {
     const content = kind === 'resume' ? pack.resume : pack.coverLetter;
-    if (!content) return;
+    setError('');
+    if (!content) {
+      setError('Nothing to export yet.');
+      return;
+    }
     const title = `${kind === 'resume' ? 'CV' : 'Cover'} ${job.title || ''}`.trim();
-    const res = await fetch('/api/export', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, content, format }) });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${fname(title)}.${format}`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    try {
+      const res = await fetch('/api/export', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, content, format }) });
+      if (!res.ok) {
+        let message = 'Export failed.';
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          message = data?.error || message;
+        } else {
+          const text = await res.text();
+          if (text.trim()) message = text.trim();
+        }
+        setError(message);
+        return;
+      }
+      const blob = await res.blob();
+      if (!blob.size) {
+        setError('Export failed: empty file.');
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `${fname(title)}.${format}`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setError('Export failed.');
+    }
   }
 
-  return <AppShell><h1 className="text-3xl font-black">{t.title}</h1><div className="mt-5 flex flex-wrap gap-3"><select className="input max-w-72" value={jobId} onChange={(e) => { const found = jobs.find((j) => j.id === e.target.value); if (found) chooseJob(found); }}><option value="">{t.select}</option>{jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}</select><select className="input max-w-44" value={cvLanguage} onChange={(e) => setCvLanguage(e.target.value)}>{LANGUAGES.map((x) => <option key={x}>{x}</option>)}</select><select className="input max-w-44" value={coverLanguage} onChange={(e) => setCoverLanguage(e.target.value)}>{LANGUAGES.map((x) => <option key={x}>CL: {x}</option>)}</select><select className="input max-w-44" value={market} onChange={(e) => setMarket(e.target.value)}>{MARKETS.map((x) => <option key={x}>{x}</option>)}</select><button className="btn btn-primary" onClick={generate}>{busy ? '...' : `${t.generate} →`}</button></div>{error && <div className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{error}</div>}{msg && <div className="mt-4 rounded-xl bg-emerald-50 p-4 font-bold text-emerald-700">{msg} <a href="/tracker" className="underline">Tracker →</a></div>}<div className="mt-6 grid grid-cols-[1fr_1fr] gap-5"><section className="card p-5"><b>{t.source}</b><h2 className="mt-3 text-xl font-black">{job.title} — {job.company}</h2><p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">{job.sourceText || ''}</p></section><section className="card p-5"><b>{t.tracker}</b><p className="mt-2 text-sm text-slate-500">{noLies ? 'No Lies ON' : 'No Lies OFF'} · {pack.truthRisk || 'n/a'}</p><select className="input mt-3" value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((x) => <option key={x}>{x}</option>)}</select><input className="input mt-3" type="date" value={reminderAt} onChange={(e) => setReminderAt(e.target.value)} /><textarea className="input mt-3 min-h-24" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.notes} /><button className="btn btn-primary mt-3" onClick={saveApplication}>{t.save}</button></section></div><section className="card mt-6 p-6"><div className="flex justify-between"><b>{t.resume}</b><div className="flex gap-2"><button className="pill bg-slate-100" onClick={() => download('pdf', 'resume')}>PDF</button><button className="pill bg-slate-100" onClick={() => download('docx', 'resume')}>DOCX</button><button className="pill bg-slate-100" onClick={() => download('txt', 'resume')}>TXT</button></div></div><pre className="mt-4 whitespace-pre-wrap text-sm leading-6">{pack.resume}</pre></section><section className="card mt-6 p-6"><div className="flex justify-between"><label className="flex gap-2 font-black"><input type="checkbox" checked={coverEnabled} onChange={(e) => setCoverEnabled(e.target.checked)} />{t.cover}</label><div className="flex gap-2"><button className="pill bg-slate-100" onClick={() => download('pdf', 'coverLetter')}>PDF</button><button className="pill bg-slate-100" onClick={() => download('docx', 'coverLetter')}>DOCX</button><button className="pill bg-slate-100" onClick={() => download('txt', 'coverLetter')}>TXT</button></div></div>{coverEnabled ? <pre className="mt-4 whitespace-pre-wrap text-sm leading-6">{pack.coverLetter}</pre> : null}</section></AppShell>;
+  return <AppShell><h1 className="text-3xl font-black">{t.title}</h1><div className="mt-5 flex flex-wrap gap-3"><select className="input max-w-72" value={jobId} onChange={(e) => { const found = jobs.find((j) => j.id === e.target.value); if (found) chooseJob(found); }}><option value="">{t.select}</option>{jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}</select><select className="input max-w-44" value={cvLanguage} onChange={(e) => setCvLanguage(e.target.value)}>{LANGUAGES.map((x) => <option key={x}>{x}</option>)}</select><select className="input max-w-44" value={coverLanguage} onChange={(e) => setCoverLanguage(e.target.value)}>{LANGUAGES.map((x) => <option key={x}>CL: {x}</option>)}</select><select className="input max-w-44" value={market} onChange={(e) => setMarket(e.target.value)}>{MARKETS.map((x) => <option key={x}>{x}</option>)}</select><button className="btn btn-primary" onClick={generate}>{busy ? '...' : `${t.generate} →`}</button></div>{error && <div className="mt-4 rounded-xl bg-rose-50 p-4 font-bold text-rose-700">{error}</div>}{msg && <div className="mt-4 rounded-xl bg-emerald-50 p-4 font-bold text-emerald-700">{msg} <a href="/tracker" className="underline">Tracker →</a></div>}<div className="mt-6 grid grid-cols-[1fr_1fr] gap-5"><section className="card p-5"><b>{t.source}</b><h2 className="mt-3 text-xl font-black">{job.title} — {job.company}</h2><p className="mt-3 whitespace-pre-wrap text-sm text-slate-600">{job.sourceText || ''}</p></section><section className="card p-5"><b>{t.tracker}</b><p className="mt-2 text-sm text-slate-500">{noLies ? 'No Lies ON' : 'No Lies OFF'} · {pack.truthRisk || 'n/a'}</p><select className="input mt-3" value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((x) => <option key={x}>{x}</option>)}</select><input className="input mt-3" type="date" value={reminderAt} onChange={(e) => setReminderAt(e.target.value)} /><textarea className="input mt-3 min-h-24" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.notes} /><button className="btn btn-primary mt-3" onClick={saveApplication}>{t.save}</button></section></div><section className="card mt-6 p-6"><div className="flex justify-between"><b>{t.resume}</b><div className="flex gap-2"><button className="pill bg-slate-100" onClick={() => download('pdf', 'resume')}>PDF</button><button className="pill bg-slate-100" onClick={() => download('docx', 'resume')}>DOCX</button><button className="pill bg-slate-100" onClick={() => download('txt', 'resume')}>TXT</button></div></div><pre className="mt-4 whitespace-pre-wrap text-sm leading-6">{pack.resume}</pre></section><section className="card mt-6 p-6"><div className="flex items-center justify-between"><label className="flex items-center gap-3 font-black"><input className="h-5 w-5 rounded-md border border-slate-300 bg-white text-emerald-600 shadow-sm accent-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200" type="checkbox" checked={coverEnabled} onChange={(e) => setCoverEnabled(e.target.checked)} />{t.cover}</label><div className="flex gap-2"><button className="pill bg-slate-100" onClick={() => download('pdf', 'coverLetter')}>PDF</button><button className="pill bg-slate-100" onClick={() => download('docx', 'coverLetter')}>DOCX</button><button className="pill bg-slate-100" onClick={() => download('txt', 'coverLetter')}>TXT</button></div></div>{coverEnabled ? <pre className="mt-4 whitespace-pre-wrap text-sm leading-6">{pack.coverLetter}</pre> : null}</section></AppShell>;
 }
